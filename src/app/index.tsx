@@ -1,28 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
-import { supabase } from '../lib/supabase'
+import { Redirect } from 'expo-router'
+import { useAuthStore } from '../stores/authStore'
 
 export default function Index() {
-  const [status, setStatus] = useState('Checking connection...')
+  const session = useAuthStore((s) => s.session)
+  const role = useAuthStore((s) => s.role)
 
-  useEffect(() => {
-    supabase.auth
-      .signInWithPassword({
-        email: 'connection-test@example.com',
-        password: 'not-a-real-password',
-      })
-      .then(({ error }) => {
-        if (error?.message === 'Invalid login credentials') {
-          setStatus('Connected to Supabase')
-        } else {
-          setStatus('Problem: ' + (error?.message ?? 'unexpected result'))
-        }
-      })
-  }, [])
-
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 18 }}>{status}</Text>
-    </View>
-  )
+  if (!session || !role) return <Redirect href="/login" />
+  return <Redirect href={role === 'patient' ? '/home' : '/dashboard'} />
 }
