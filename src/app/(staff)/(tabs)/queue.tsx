@@ -6,6 +6,8 @@ import { StaffScreen } from '../../../components/StaffScreen'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
+import { AddToQueue } from '../../../components/AddToQueue'
+import { PrimaryButton } from '../../../components/PrimaryButton'
 
 type Status = 'waiting' | 'in_consultation'
 
@@ -79,6 +81,7 @@ export default function Queue() {
   const [now, setNow] = useState(Date.now())
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -257,6 +260,23 @@ export default function Queue() {
 
   return (
     <StaffScreen title="Queue">
+      
+      {adding ? (
+        <AddToQueue
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            setAdding(false)
+            load()
+          }}
+        />
+      ) : (
+        <PrimaryButton
+          label="Add patient to queue"
+          icon="account-plus-outline"
+          onPress={() => setAdding(true)}
+        />
+      )}
+      
       {message ? (
         <View
           accessibilityRole="alert"
