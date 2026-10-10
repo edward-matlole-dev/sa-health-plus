@@ -6,5 +6,7 @@ export default function Index() {
   const role = useAuthStore((s) => s.role)
 
   if (!session || !role) return <Redirect href="/login" />
-  return <Redirect href={role === 'patient' ? '/home' : '/dashboard'} />
+  if (role === 'patient') return <Redirect href="/home" />
+  if (role === 'reception') return <Redirect href="/queue" />
+  return <Redirect href="/dashboard" />
 }
