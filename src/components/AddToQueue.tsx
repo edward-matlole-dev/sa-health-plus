@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { colors, fontSize, radius, shadow, spacing } from '../constants/theme'
 import { supabase } from '../lib/supabase'
+import { cleanTokens } from '../utils/patientSearch'
 import { Field } from './Field'
 import { PrimaryButton } from './PrimaryButton'
 
@@ -10,14 +11,6 @@ type Found = { id: string; first_name: string; last_name: string; patient_number
 
 const REASONS = ['Check-up', 'Medication collection', 'Blood test', 'Feeling unwell']
 
-// Keep letters, digits and hyphens only, so what a person types can never change the search itself
-function cleanTokens(raw: string): string[] {
-  return raw
-    .replace(/[^A-Za-z0-9\s-]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 3)
-}
 
 type Props = {
   onAdded: () => void

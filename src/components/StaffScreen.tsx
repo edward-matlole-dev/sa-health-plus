@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { type ReactNode, useEffect } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,9 +17,10 @@ const ROLE_LABEL: Record<string, string> = {
 type Props = {
   title: string
   children: ReactNode
+  showBack?: boolean
 }
 
-export function StaffScreen({ title, children }: Props) {
+export function StaffScreen({ title, children, showBack = false }: Props) {
   const insets = useSafeAreaInsets()
   const signOut = useAuthStore((s) => s.signOut)
   const role = useAuthStore((s) => s.role)
@@ -38,8 +40,7 @@ export function StaffScreen({ title, children }: Props) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: spacing.md,
+          gap: spacing.sm,
           paddingTop: insets.top + spacing.sm,
           paddingBottom: spacing.md,
           paddingHorizontal: spacing.lg,
@@ -48,6 +49,17 @@ export function StaffScreen({ title, children }: Props) {
           borderBottomColor: colors.border,
         }}
       >
+        {showBack ? (
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -spacing.sm }}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={26} color={colors.primary} />
+          </Pressable>
+        ) : null}
         <View style={{ flex: 1 }}>
           <Text
             accessibilityRole="header"
@@ -55,9 +67,7 @@ export function StaffScreen({ title, children }: Props) {
           >
             {title}
           </Text>
-          {who ? (
-            <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{who}</Text>
-          ) : null}
+          {who ? <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{who}</Text> : null}
         </View>
         <Pressable
           onPress={signOut}
