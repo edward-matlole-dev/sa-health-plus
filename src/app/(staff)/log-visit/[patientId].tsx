@@ -1,148 +1,113 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import type { ComponentProps } from 'react'
 import { useEffect, useState } from 'react'
-import { Switch, Text, View } from 'react-native'
-import { Chip } from '../../../components/Chip'
+import { Pressable, Text, View } from 'react-native'
 import { Field } from '../../../components/Field'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
-import { StatusBadge } from '../../../components/StatusBadge'
-import { APPOINTMENT_TYPES } from '../../../constants/appointmentTypes'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
-import {
-  FLAG_LABELS,
-  VITAL_FIELDS,
-  VITAL_NAMES,
-  type VitalKey,
-  type VitalStatus,
-  calculateBmi,
-  parseNumber,
-} from '../../../constants/vitals'
+import { CategoryStep } from '../../../components/visit/CategoryStep'
+import { ChecklistStep, checklistErrors } from '../../../components/visit/ChecklistStep'
+import { VisitSaved, type VisitResult } from '../../../components/visit/VisitSaved'
+import { VitalsStep } from '../../../components/visit/VitalsStep'
+import { ErrorBanner, card } from '../../../components/visit/ui'
+import { type Category, categoryLabel, getCategory } from '../../../constants/categories'
+import { colors, fontSize, radius, spacing } from '../../../constants/theme'
+import { VITAL_FIELDS } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
+import { useVisitDraft } from '../../../stores/visitDraftStore'
+import { validateVitals } from '../../../utils/vitalsValidation'
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
+const STEPS = [
+  { key: 'category', label: 'Category' },
+  { key: 'checklist', label: 'Checklist' },
+  { key: 'vitals', label: 'Vitals' },
+  { key: 'notes', label: 'Notes' },
+] as const
 
-const ICONS: Record<VitalKey, IconName> = {
-  bp_systolic: 'heart-pulse',
-  bp_diastolic: 'heart-pulse',
-  pulse: 'pulse',
-  temperature: 'thermometer',
-  spo2: 'lungs',
-  respiration: 'weather-windy',
-  glucose: 'water-percent',
-  weight: 'scale-bathroom',
-  height: 'human-male-height',
-  muac: 'tape-measure',
-  haemoglobin: 'blood-bag',
+// The category's own text fields (for example "Presenting symptoms") are added to the clinical notes
+function composeNotes(category: Category | undefined, texts: Record<string, string>, notes: string) {
+  const lines: string[] = []
+  for (const f of category?.sheet.texts ?? []) {
+    const value = (texts[f.key] ?? '').trim()
+    if (value) lines.push(`${f.label}: ${value}`)
+  }
+  if (notes.trim()) lines.push(notes.trim())
+  return lines.join('\n')
 }
 
-type Values = Record<VitalKey, string>
-type Errors = Partial<Record<VitalKey | 'type', string>>
-
-type VisitResult = {
-  visit_id: string
-  has_flagged_vitals: boolean
-  vitals: { type: string; value: number; unit: string; status: VitalStatus; flag_code: string | null }[]
-}
-
-const emptyValues = (): Values =>
-  Object.fromEntries(VITAL_FIELDS.map((f) => [f.key, ''])) as Values
-
-const RANK: Record<VitalStatus, number> = { crisis: 0, high: 1, low: 2, elevated: 3, normal: 4 }
-
-function validate(values: Values, appointmentType: string) {
-  const errors: Errors = {}
-  const numbers: Partial<Record<VitalKey, number>> = {}
-
-  for (const f of VITAL_FIELDS) {
-    const raw = values[f.key]
-    if (raw.trim() === '') continue
-    const n = parseNumber(raw)
-    if (n === null) errors[f.key] = 'Enter a number, for example 36.6'
-    else if (n < f.min || n > f.max) errors[f.key] = `Must be between ${f.min} and ${f.max} ${f.unit}`
-    else numbers[f.key] = n
-  }
-
-  // Blood pressure needs both numbers, and the top number must be higher
-  const hasTop = values.bp_systolic.trim() !== ''
-  const hasBottom = values.bp_diastolic.trim() !== ''
-  if (hasTop !== hasBottom) {
-    const missing = hasTop ? 'bp_diastolic' : 'bp_systolic'
-    errors[missing] ??= 'Enter both blood pressure numbers'
-  } else if (
-    numbers.bp_systolic !== undefined &&
-    numbers.bp_diastolic !== undefined &&
-    numbers.bp_systolic <= numbers.bp_diastolic
-  ) {
-    errors.bp_systolic ??= 'The top number must be higher than the bottom number'
-  }
-
-  // BMI is worked out from weight and height, never typed in
-  let bmi: number | null = null
-  if (numbers.weight !== undefined && numbers.height !== undefined) {
-    bmi = calculateBmi(numbers.weight, numbers.height)
-    if (bmi < 5 || bmi > 100) {
-      errors.height ??= 'Weight and height give an impossible BMI. Please check both.'
-      bmi = null
-    }
-  }
-
-  if (!appointmentType) errors.type = 'Choose the appointment type'
-  return { errors, numbers, bmi }
-}
-
-function ErrorLine({ text }: { text: string }) {
+function StepIndicator({ current }: { current: number }) {
   return (
     <View
-      accessibilityRole="alert"
-      accessibilityLiveRegion="polite"
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        padding: spacing.md,
-        borderRadius: radius.md,
-        backgroundColor: colors.errorTint,
-      }}
+      accessible
+      accessibilityLabel={`Step ${current + 1} of ${STEPS.length}: ${STEPS[current].label}`}
+      style={{ flexDirection: 'row', justifyContent: 'space-between' }}
     >
-      <MaterialCommunityIcons name="alert-circle-outline" size={22} color={colors.error} />
-      <Text style={{ flex: 1, fontSize: fontSize.small, color: colors.error }}>{text}</Text>
+      {STEPS.map((s, i) => {
+        const done = i < current
+        const active = i === current
+        return (
+          <View key={s.key} style={{ flex: 1, alignItems: 'center', gap: spacing.xs }}>
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.pill,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: done || active ? colors.primary : colors.surface,
+                borderWidth: 2,
+                borderColor: done || active ? colors.primary : colors.inputBorder,
+              }}
+            >
+              {done ? (
+                <MaterialCommunityIcons name="check" size={18} color={colors.white} />
+              ) : (
+                <Text style={{ fontSize: fontSize.small, fontWeight: '700', color: active ? colors.white : colors.muted }}>
+                  {i + 1}
+                </Text>
+              )}
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: active ? '700' : '500', color: active ? colors.heading : colors.muted }}>
+              {s.label}
+            </Text>
+          </View>
+        )
+      })}
     </View>
   )
 }
 
-const card = {
-  gap: spacing.md,
-  padding: spacing.lg,
-  borderRadius: radius.xl,
-  backgroundColor: colors.surface,
-  ...shadow.card,
-} as const
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+      <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{label}</Text>
+      <Text style={{ flex: 1, textAlign: 'right', fontSize: fontSize.small, fontWeight: '600', color: colors.ink }}>
+        {value}
+      </Text>
+    </View>
+  )
+}
 
 export default function LogVisit() {
   const { patientId } = useLocalSearchParams<{ patientId: string }>()
   const role = useAuthStore((s) => s.role)
+  const d = useVisitDraft()
 
   const [patient, setPatient] = useState<{
     first_name: string
     last_name: string
     patient_number: string
   } | null>(null)
-  const [appointmentType, setAppointmentType] = useState('')
-  const [generalCondition, setGeneralCondition] = useState('')
-  const [urine, setUrine] = useState('')
-  const [notes, setNotes] = useState('')
-  const [glucoseFasting, setGlucoseFasting] = useState(true)
-  const [values, setValues] = useState<Values>(emptyValues)
-  const [submitted, setSubmitted] = useState(false)
+  const [step, setStep] = useState(0)
+  const [showErrors, setShowErrors] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<VisitResult | null>(null)
 
   useEffect(() => {
     if (!patientId) return
+    useVisitDraft.getState().start(patientId)
     let cancelled = false
     supabase
       .from('patients')
@@ -157,36 +122,73 @@ export default function LogVisit() {
     }
   }, [patientId])
 
-  const { errors, numbers, bmi } = validate(values, appointmentType)
-  const shown: Errors = submitted ? errors : {}
-  const setValue = (key: VitalKey) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }))
+  const category = getCategory(d.categoryKey)
+  const categoryError = category ? null : 'Choose the visit category'
+  const listErrors = category ? checklistErrors(category, d.ticks, d.numbers, d.ageGroup) : {}
+  const vitals = validateVitals(d.vitals)
+  const stepKey = STEPS[step].key
+  const isLast = step === STEPS.length - 1
+
+  const goTo = (n: number) => {
+    setShowErrors(false)
+    setError(null)
+    setStep(n)
+  }
+
+  const next = () => {
+    setShowErrors(true)
+    if (stepKey === 'category' && categoryError) return
+    if (stepKey === 'checklist' && Object.keys(listErrors).length > 0) return
+    if (stepKey === 'vitals' && Object.keys(vitals.errors).length > 0) return
+    goTo(step + 1)
+  }
 
   const save = async () => {
-    setSubmitted(true)
     setError(null)
-    if (Object.keys(errors).length > 0 || busy) return
+    // Every earlier step must still be valid
+    if (categoryError) return goTo(0)
+    if (Object.keys(listErrors).length > 0) return goTo(1)
+    if (Object.keys(vitals.errors).length > 0) return goTo(2)
 
-    const vitals: { type: string; value: number; unit: string }[] = VITAL_FIELDS.filter(
-      (f) => numbers[f.key] !== undefined,
-    ).map((f) => ({ type: f.key, value: numbers[f.key] as number, unit: f.unit }))
-    if (bmi !== null) vitals.push({ type: 'bmi', value: bmi, unit: 'kg/m2' })
+    const notes = composeNotes(category, d.texts, d.notes)
+    if (notes.length > 2000) {
+      setError('The notes are too long. Please shorten them.')
+      return
+    }
+    if (busy || !category) return
+
+    const vitalList: { type: string; value: number; unit: string }[] = VITAL_FIELDS.filter(
+      (f) => vitals.numbers[f.key] !== undefined,
+    ).map((f) => ({ type: f.key, value: vitals.numbers[f.key] as number, unit: f.unit }))
+    if (vitals.bmi !== null) vitalList.push({ type: 'bmi', value: vitals.bmi, unit: 'kg/m2' })
+
+    const indicators: { key: string; value?: number | null }[] = Object.entries(d.ticks).map(([key, value]) => ({
+      key,
+      value,
+    }))
+    for (const [key, raw] of Object.entries(d.numbers)) {
+      if (raw.trim() !== '') indicators.push({ key, value: Number(raw) })
+    }
+    if (d.ageGroup) indicators.push({ key: `age_group_${d.ageGroup}` })
 
     setBusy(true)
     const { data, error: rpcError } = await supabase.rpc('log_visit', {
       p_patient_id: patientId,
-      p_appointment_type: appointmentType,
-      p_glucose_fasting: glucoseFasting,
-      p_general_condition: generalCondition,
-      p_urine: urine,
+      p_appointment_type: category.key,
+      p_attended_by: d.attendedBy,
+      p_glucose_fasting: d.glucoseFasting,
+      p_general_condition: d.generalCondition,
+      p_urine: d.urine,
       p_notes: notes,
-      p_vitals: vitals,
+      p_vitals: vitalList,
+      p_indicators: indicators,
     })
     setBusy(false)
 
     if (rpcError) {
       const m = rpcError.message.toLowerCase()
       if (m.includes('fetch') || m.includes('network'))
-        setError('Cannot connect. Check your internet connection and try again.')
+        setError('Cannot connect. Check your internet connection and try again. Nothing has been lost.')
       else if (rpcError.code === '23514')
         setError('One of the readings is outside the possible range. Please check the values.')
       else if (rpcError.code === '42501') setError('Only nurses can log visits.')
@@ -195,6 +197,8 @@ export default function LogVisit() {
       else setError('Could not save the visit. Please try again.')
       return
     }
+
+    useVisitDraft.getState().reset()
     setResult(data as VisitResult)
   }
 
@@ -212,78 +216,18 @@ export default function LogVisit() {
   }
 
   if (result) {
-    const sorted = [...result.vitals].sort((a, b) => RANK[a.status] - RANK[b.status])
     return (
       <StaffScreen title="Visit saved" showBack>
-        <View style={{ ...card, alignItems: 'center' }}>
-          <MaterialCommunityIcons name="check-circle-outline" size={56} color={colors.primary} />
-          <Text style={{ fontSize: fontSize.heading, fontWeight: '700', color: colors.heading }}>Visit saved</Text>
-          {patient ? (
-            <Text style={{ fontSize: fontSize.body, color: colors.ink }}>
-              {patient.first_name} {patient.last_name} · {patient.patient_number}
-            </Text>
-          ) : null}
-        </View>
-
-        {result.has_flagged_vitals ? (
-          <View
-            accessibilityRole="alert"
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.sm,
-              padding: spacing.md,
-              borderRadius: radius.md,
-              backgroundColor: '#FAEEDA',
-            }}
-          >
-            <MaterialCommunityIcons name="alert-outline" size={22} color="#854F0B" />
-            <Text style={{ flex: 1, fontSize: fontSize.body, fontWeight: '700', color: '#854F0B' }}>
-              Some readings need attention
-            </Text>
-          </View>
-        ) : null}
-
-        {sorted.length > 0 ? (
-          <View style={card}>
-            <Text accessibilityRole="header" style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
-              Readings
-            </Text>
-            {sorted.map((v) => (
-              <View key={v.type} style={{ gap: spacing.xs }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.ink }}>
-                      {VITAL_NAMES[v.type] ?? v.type}
-                    </Text>
-                    <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
-                      {v.value} {v.unit}
-                    </Text>
-                  </View>
-                  <StatusBadge status={v.status} />
-                </View>
-                {v.flag_code ? (
-                  <Text style={{ fontSize: fontSize.small, color: colors.ink }}>
-                    {FLAG_LABELS[v.flag_code] ?? v.flag_code}
-                  </Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={{ fontSize: fontSize.body, color: colors.muted }}>No vital signs were recorded at this visit.</Text>
-        )}
-
-        <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
-          Flags are advisory only. They help to prioritise attention and are not a diagnosis.
-        </Text>
-        <PrimaryButton label="Back to patient record" icon="arrow-left" onPress={() => router.back()} />
+        <VisitSaved result={result} patient={patient} onDone={() => router.back()} />
       </StaffScreen>
     )
   }
 
+  const tickCount = Object.keys(d.ticks).length
+  const readingCount = Object.keys(vitals.numbers).length + (vitals.bmi !== null ? 1 : 0)
+
   return (
-    <StaffScreen title="Log visit" showBack>
+    <StaffScreen title="Log visit" showBack scrollKey={step}>
       {patient ? (
         <View style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}>
           <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
@@ -293,99 +237,99 @@ export default function LogVisit() {
         </View>
       ) : null}
 
-      <View style={card}>
-        <Text accessibilityRole="header" style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
-          Visit details
-        </Text>
-        <View style={{ gap: spacing.sm }}>
-          <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.muted }}>Appointment type</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {APPOINTMENT_TYPES.map((t) => (
-              <Chip key={t} label={t} selected={appointmentType === t} onPress={() => setAppointmentType(t)} />
-            ))}
-          </View>
-          {shown.type ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={18} color={colors.error} />
-              <Text style={{ fontSize: fontSize.small, color: colors.error }}>{shown.type}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Field
-          label="General condition"
-          icon="account-heart-outline"
-          value={generalCondition}
-          onChangeText={setGeneralCondition}
-          maxLength={200}
-        />
-        <Field label="Urine" icon="water-outline" value={urine} onChangeText={setUrine} maxLength={200} />
-        <Field
-          label="Clinical notes"
-          icon="text-box-outline"
-          value={notes}
-          onChangeText={setNotes}
-          maxLength={2000}
-          multiline
-          style={{ minHeight: 96, textAlignVertical: 'top', paddingTop: spacing.md }}
-        />
-      </View>
+      <StepIndicator current={step} />
 
-      <View style={card}>
-        <Text accessibilityRole="header" style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
-          Vital signs
-        </Text>
-        <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
-          Leave blank anything that was not measured.
-        </Text>
-
-        {VITAL_FIELDS.map((f) => (
-          <View key={f.key} style={{ gap: spacing.sm }}>
-            <Field
-              label={`${f.label} (${f.unit})`}
-              icon={ICONS[f.key]}
-              value={values[f.key]}
-              onChangeText={setValue(f.key)}
-              keyboardType="decimal-pad"
-              maxLength={6}
-              error={shown[f.key] ?? null}
-            />
-            {f.key === 'glucose' ? (
-              <View style={{ gap: spacing.xs }}>
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 }}
-                >
-                  <Text style={{ fontSize: fontSize.body, color: colors.ink }}>Fasting reading</Text>
-                  <Switch
-                    value={glucoseFasting}
-                    onValueChange={setGlucoseFasting}
-                    accessibilityLabel="Fasting glucose reading"
-                    trackColor={{ true: colors.primary, false: colors.inputBorder }}
-                    thumbColor={colors.white}
-                  />
-                </View>
-                <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
-                  Different limits apply to fasting and non-fasting readings.
-                </Text>
-              </View>
-            ) : null}
-            {f.key === 'height' && bmi !== null ? (
-              <View
-                accessibilityLiveRegion="polite"
-                style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}
-              >
-                <Text style={{ fontSize: fontSize.small, color: colors.ink }}>BMI: {bmi} (calculated)</Text>
-              </View>
-            ) : null}
-          </View>
-        ))}
-      </View>
-
-      {submitted && Object.keys(errors).length > 0 ? (
-        <ErrorLine text="Please check the fields marked above." />
+      {stepKey === 'category' ? <CategoryStep error={showErrors ? categoryError : null} /> : null}
+      {stepKey === 'checklist' && category ? (
+        <ChecklistStep category={category} errors={showErrors ? listErrors : {}} />
       ) : null}
-      {error ? <ErrorLine text={error} /> : null}
+      {stepKey === 'vitals' ? <VitalsStep errors={showErrors ? vitals.errors : {}} /> : null}
+      {stepKey === 'notes' ? (
+        <>
+          <View style={card}>
+            <Text accessibilityRole="header" style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
+              Notes
+            </Text>
+            <Field
+              label="General condition"
+              icon="account-heart-outline"
+              value={d.generalCondition}
+              onChangeText={(v) => d.patch({ generalCondition: v })}
+              maxLength={200}
+            />
+            <Field
+              label="Urine"
+              icon="water-outline"
+              value={d.urine}
+              onChangeText={(v) => d.patch({ urine: v })}
+              maxLength={200}
+            />
+            {(category?.sheet.texts ?? [])
+              .filter((f) => f.step === 'notes')
+              .map((f) => (
+                <Field
+                  key={f.key}
+                  label={f.label}
+                  icon="text-box-outline"
+                  value={d.texts[f.key] ?? ''}
+                  onChangeText={(v) => d.patch({ texts: { ...d.texts, [f.key]: v } })}
+                  placeholder={f.placeholder}
+                  maxLength={500}
+                  multiline
+                  style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: spacing.md }}
+                />
+              ))}
+            <Field
+              label="Clinical notes"
+              icon="text-box-outline"
+              value={d.notes}
+              onChangeText={(v) => d.patch({ notes: v })}
+              maxLength={2000}
+              multiline
+              style={{ minHeight: 120, textAlignVertical: 'top', paddingTop: spacing.md }}
+            />
+          </View>
+          <View style={card}>
+            <Text accessibilityRole="header" style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
+              Summary
+            </Text>
+            <SummaryRow label="Category" value={categoryLabel(d.categoryKey)} />
+            <SummaryRow label="Attended by" value={d.attendedBy === 'doctor' ? 'Doctor' : 'Nurse'} />
+            <SummaryRow label="Checklist items ticked" value={String(tickCount)} />
+            <SummaryRow label="Vital signs recorded" value={String(readingCount)} />
+          </View>
+        </>
+      ) : null}
 
-      <PrimaryButton label="Save visit" icon="check" onPress={save} loading={busy} />
+      {error ? <ErrorBanner text={error} /> : null}
+
+      {isLast ? (
+        <PrimaryButton label="Save visit" icon="check" onPress={save} loading={busy} />
+      ) : (
+        <PrimaryButton label="Next" icon="arrow-right" onPress={next} />
+      )}
+      {step > 0 ? (
+        <Pressable
+          onPress={() => goTo(step - 1)}
+          accessibilityRole="button"
+          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.primary }}>Back</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => {
+            const store = useVisitDraft.getState()
+            store.reset()
+            if (patientId) store.start(patientId)
+            goTo(0)
+          }}
+          accessibilityRole="button"
+          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.muted }}>Clear the form</Text>
+        </Pressable>
+      )}
     </StaffScreen>
   )
 }

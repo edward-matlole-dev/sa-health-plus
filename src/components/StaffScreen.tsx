@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fontSize, spacing } from '../constants/theme'
@@ -18,15 +18,22 @@ type Props = {
   title: string
   children: ReactNode
   showBack?: boolean
+  scrollKey?: string | number
 }
 
-export function StaffScreen({ title, children, showBack = false }: Props) {
+export function StaffScreen({ title, children, showBack = false, scrollKey }: Props) {
   const insets = useSafeAreaInsets()
   const signOut = useAuthStore((s) => s.signOut)
   const role = useAuthStore((s) => s.role)
   const userId = useAuthStore((s) => s.session?.user.id)
   const name = useStaffName((s) => (s.forUser === userId ? s.name : null))
   const loadName = useStaffName((s) => s.load)
+
+  const scrollRef = useRef<ScrollView>(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+  }, [scrollKey])
 
   useEffect(() => {
     if (userId) loadName(userId)
@@ -80,6 +87,7 @@ export function StaffScreen({ title, children, showBack = false }: Props) {
         </Pressable>
       </View>
       <ScrollView
+        ref={scrollRef}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
       >
