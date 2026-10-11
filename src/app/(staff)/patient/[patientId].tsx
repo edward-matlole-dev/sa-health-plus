@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { StaffScreen } from '../../../components/StaffScreen'
+import { PrimaryButton } from '../../../components/PrimaryButton'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
@@ -107,6 +108,14 @@ export default function PatientRecord() {
           <Row label="Phone" value={patient.phone} />
           <Row label="Registered" value={formatDate(patient.created_at)} />
         </View>
+
+        <PrimaryButton
+          label="Log visit"
+          icon="clipboard-plus-outline"
+          onPress={() =>
+            router.push({ pathname: '/log-visit/[patientId]', params: { patientId } })
+          }
+        />
 
         <View
           style={{
