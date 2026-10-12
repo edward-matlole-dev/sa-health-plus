@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
-import { StaffScreen } from '../../../components/StaffScreen'
+import { ScrollView, Text, View } from 'react-native'
+import { Chip } from '../../../components/Chip'
 import { PrimaryButton } from '../../../components/PrimaryButton'
+import { StaffScreen } from '../../../components/StaffScreen'
+import { CheckupsTab } from '../../../components/record/CheckupsTab'
+import { card } from '../../../components/visit/ui'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
@@ -20,6 +23,14 @@ type Patient = {
 }
 
 type LoadState = 'loading' | 'ready' | 'missing' | 'error'
+type TabKey = 'checkups' | 'medications' | 'appointments' | 'tests'
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'checkups', label: 'Checkups' },
+  { key: 'medications', label: 'Medications' },
+  { key: 'appointments', label: 'Appointments' },
+  { key: 'tests', label: 'Blood tests' },
+]
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -35,6 +46,7 @@ export default function PatientRecord() {
   const role = useAuthStore((s) => s.role)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [state, setState] = useState<LoadState>('loading')
+  const [tab, setTab] = useState<TabKey>('checkups')
 
   useEffect(() => {
     if (!patientId) return
@@ -112,24 +124,25 @@ export default function PatientRecord() {
         <PrimaryButton
           label="Log visit"
           icon="clipboard-plus-outline"
-          onPress={() =>
-            router.push({ pathname: '/log-visit/[patientId]', params: { patientId } })
-          }
+          onPress={() => router.push({ pathname: '/log-visit/[patientId]', params: { patientId } })}
         />
 
-        <View
-          style={{
-            gap: spacing.sm,
-            padding: spacing.lg,
-            borderRadius: radius.xl,
-            backgroundColor: colors.tint,
-          }}
-        >
-          <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>Clinical record</Text>
-          <Text style={{ fontSize: fontSize.small, color: colors.ink }}>
-            Checkups, medications, injections, blood tests and appointments will appear here.
-          </Text>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist">
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {TABS.map((t) => (
+              <Chip key={t.key} label={t.label} selected={tab === t.key} onPress={() => setTab(t.key)} />
+            ))}
+          </View>
+        </ScrollView>
+
+        {tab === 'checkups' ? <CheckupsTab patientId={patientId} /> : null}
+        {tab !== 'checkups' ? (
+          <View style={card}>
+            <Text style={{ fontSize: fontSize.body, color: colors.muted }}>
+              This tab is built in the next step.
+            </Text>
+          </View>
+        ) : null}
       </>
     )
   }

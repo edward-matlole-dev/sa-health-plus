@@ -405,3 +405,31 @@ export function allIndicatorKeys(): string[] {
   }
   return keys
 }
+
+// The readable name of a tick key, for showing a saved checklist
+function collectLabels(ticks: Tick[] | undefined, into: Map<string, string>) {
+  for (const tick of ticks ?? []) {
+    into.set(tick.key, tick.label)
+    collectLabels(tick.children?.ticks, into)
+  }
+}
+
+let labelMap: Map<string, string> | null = null
+
+export function indicatorLabel(key: string): string {
+  if (!labelMap) {
+    const map = new Map<string, string>()
+    for (const c of CATEGORIES) {
+      for (const s of c.sheet.sections ?? []) {
+        collectLabels(s.ticks, map)
+        for (const n of s.numbers ?? []) map.set(n.key, n.label)
+      }
+      for (const g of c.sheet.ageGroups ?? []) {
+        map.set(`age_group_${g.key}`, `Age group: ${g.label}`)
+        collectLabels(g.ticks, map)
+      }
+    }
+    labelMap = map
+  }
+  return labelMap.get(key) ?? key
+}

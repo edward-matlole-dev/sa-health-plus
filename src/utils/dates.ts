@@ -39,3 +39,9 @@ export function weekdayOf(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return WEEKDAYS[new Date(y, m - 1, d).getDay()]
 }
+
+// A moment in time as "12 Oct 2026, 14:30", in the phone's own time zone
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
