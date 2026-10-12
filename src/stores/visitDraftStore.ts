@@ -23,6 +23,20 @@ export const newMedication = (): MedDraft => ({
   volumeMl: '',
 })
 
+export type AppointmentDraft = {
+  days: string // how many days from today
+  type: 'same' | 'follow_up'
+  priority: 'normal' | 'urgent'
+  prep: string
+}
+
+export const newAppointment = (): AppointmentDraft => ({
+  days: '',
+  type: 'same',
+  priority: 'normal',
+  prep: '',
+})
+
 const emptyValues = (): Values =>
   Object.fromEntries(VITAL_FIELDS.map((f) => [f.key, ''])) as Values
 
@@ -37,6 +51,7 @@ type Draft = {
   vitals: Values
   glucoseFasting: boolean
   medications: MedDraft[]
+  appointment: AppointmentDraft | null
   generalCondition: string
   urine: string
   notes: string
@@ -53,6 +68,7 @@ const blank = (patientId: string | null): Draft => ({
   vitals: emptyValues(),
   glucoseFasting: true,
   medications: [],
+  appointment: null,
   generalCondition: '',
   urine: '',
   notes: '',

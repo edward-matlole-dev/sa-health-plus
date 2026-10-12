@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Field } from '../../../components/Field'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
+import { AppointmentStep, appointmentErrors } from '../../../components/visit/AppointmentStep'
 import { CategoryStep } from '../../../components/visit/CategoryStep'
 import { ChecklistStep, checklistErrors } from '../../../components/visit/ChecklistStep'
 import { MedicationStep, medicationErrors } from '../../../components/visit/MedicationStep'
@@ -17,7 +18,7 @@ import { VITAL_FIELDS } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { useVisitDraft } from '../../../stores/visitDraftStore'
-import { addDaysLocal } from '../../../utils/dates'
+import { addDaysLocal, formatDate } from '../../../utils/dates'
 import { validateVitals } from '../../../utils/vitalsValidation'
 
 const STEPS = [
@@ -25,6 +26,7 @@ const STEPS = [
   { key: 'checklist', label: 'Checklist' },
   { key: 'vitals', label: 'Vitals' },
   { key: 'medication', label: 'Meds' },
+  { key: 'appointment', label: 'Appt' },
   { key: 'notes', label: 'Notes' },
 ] as const
 
@@ -71,7 +73,10 @@ function StepIndicator({ current }: { current: number }) {
                 </Text>
               )}
             </View>
-            <Text style={{ fontSize: 12, fontWeight: active ? '700' : '500', color: active ? colors.heading : colors.muted }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 11, fontWeight: active ? '700' : '500', color: active ? colors.heading : colors.muted }}
+            >
               {s.label}
             </Text>
           </View>
@@ -130,6 +135,7 @@ export default function LogVisit() {
   const listErrors = category ? checklistErrors(category, d.ticks, d.numbers, d.ageGroup) : {}
   const vitals = validateVitals(d.vitals)
   const medErrors = medicationErrors(d.medications)
+  const apptErrors = appointmentErrors(d.appointment)
   const stepKey = STEPS[step].key
   const isLast = step === STEPS.length - 1
 
@@ -145,6 +151,7 @@ export default function LogVisit() {
     if (stepKey === 'checklist' && Object.keys(listErrors).length > 0) return
     if (stepKey === 'vitals' && Object.keys(vitals.errors).length > 0) return
     if (stepKey === 'medication' && Object.keys(medErrors).length > 0) return
+    if (stepKey === 'appointment' && Object.keys(apptErrors).length > 0) return
     goTo(step + 1)
   }
 
@@ -155,6 +162,7 @@ export default function LogVisit() {
     if (Object.keys(listErrors).length > 0) return goTo(1)
     if (Object.keys(vitals.errors).length > 0) return goTo(2)
     if (Object.keys(medErrors).length > 0) return goTo(3)
+    if (Object.keys(apptErrors).length > 0) return goTo(4)
 
     const notes = composeNotes(category, d.texts, d.notes)
     if (notes.length > 2000) {
@@ -177,7 +185,7 @@ export default function LogVisit() {
     }
     if (d.ageGroup) indicators.push({ key: `age_group_${d.ageGroup}` })
 
-    // The next collection date is worked out here, in the phone's own time zone
+    // Dates are worked out here, in the phone's own time zone
     const medications = d.medications.map((m) => {
       const days = m.supplyDays.trim() ? Number(m.supplyDays) : null
       const volume = m.volumeMl.trim() ? Number(m.volumeMl.replace(',', '.')) : null
@@ -192,6 +200,15 @@ export default function LogVisit() {
       }
     })
 
+    const nextAppointment = d.appointment
+      ? {
+          appointment_date: addDaysLocal(Number(d.appointment.days)),
+          type: d.appointment.type === 'follow_up' ? 'follow_up' : category.key,
+          prep_notes: d.appointment.prep.trim(),
+          priority: d.appointment.priority,
+        }
+      : null
+
     setBusy(true)
     const { data, error: rpcError } = await supabase.rpc('log_visit', {
       p_patient_id: patientId,
@@ -204,6 +221,7 @@ export default function LogVisit() {
       p_vitals: vitalList,
       p_indicators: indicators,
       p_medications: medications,
+      p_next_appointment: nextAppointment,
     })
     setBusy(false)
 
@@ -247,6 +265,8 @@ export default function LogVisit() {
 
   const tickCount = Object.keys(d.ticks).length
   const readingCount = Object.keys(vitals.numbers).length + (vitals.bmi !== null ? 1 : 0)
+  const apptDate =
+    d.appointment && Object.keys(apptErrors).length === 0 ? formatDate(addDaysLocal(Number(d.appointment.days))) : 'None'
 
   return (
     <StaffScreen title="Log visit" showBack scrollKey={step}>
@@ -267,6 +287,9 @@ export default function LogVisit() {
       ) : null}
       {stepKey === 'vitals' ? <VitalsStep errors={showErrors ? vitals.errors : {}} /> : null}
       {stepKey === 'medication' ? <MedicationStep errors={showErrors ? medErrors : {}} /> : null}
+      {stepKey === 'appointment' ? (
+        <AppointmentStep errors={showErrors ? apptErrors : {}} visitCategory={categoryLabel(d.categoryKey)} />
+      ) : null}
       {stepKey === 'notes' ? (
         <>
           <View style={card}>
@@ -321,6 +344,7 @@ export default function LogVisit() {
             <SummaryRow label="Checklist items ticked" value={String(tickCount)} />
             <SummaryRow label="Vital signs recorded" value={String(readingCount)} />
             <SummaryRow label="Medications dispensed" value={String(d.medications.length)} />
+            <SummaryRow label="Next appointment" value={apptDate} />
           </View>
         </>
       ) : null}
