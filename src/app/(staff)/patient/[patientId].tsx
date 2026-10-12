@@ -8,7 +8,7 @@ import { StaffScreen } from '../../../components/StaffScreen'
 import { CheckupsTab } from '../../../components/record/CheckupsTab'
 import { AppointmentsTab } from '../../../components/record/AppointmentsTab'
 import { MedicationsTab } from '../../../components/record/MedicationsTab'
-import { card } from '../../../components/visit/ui'
+import { BloodTestsTab } from '../../../components/record/BloodTestsTab'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
@@ -140,13 +140,7 @@ export default function PatientRecord() {
         {tab === 'checkups' ? <CheckupsTab patientId={patientId} /> : null}
         {tab === 'medications' ? <MedicationsTab patientId={patientId} /> : null}
         {tab === 'appointments' ? <AppointmentsTab patientId={patientId} /> : null}
-        {tab === 'tests' ? (
-          <View style={card}>
-            <Text style={{ fontSize: fontSize.body, color: colors.muted }}>
-              Blood tests are built in the next step.
-            </Text>
-          </View>
-        ) : null}
+        {tab === 'tests' ? <BloodTestsTab patientId={patientId} /> : null}
       </>
     )
   }
