@@ -6,6 +6,8 @@ import { Chip } from '../../../components/Chip'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { CheckupsTab } from '../../../components/record/CheckupsTab'
+import { AppointmentsTab } from '../../../components/record/AppointmentsTab'
+import { MedicationsTab } from '../../../components/record/MedicationsTab'
 import { card } from '../../../components/visit/ui'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
@@ -136,10 +138,12 @@ export default function PatientRecord() {
         </ScrollView>
 
         {tab === 'checkups' ? <CheckupsTab patientId={patientId} /> : null}
-        {tab !== 'checkups' ? (
+        {tab === 'medications' ? <MedicationsTab patientId={patientId} /> : null}
+        {tab === 'appointments' ? <AppointmentsTab patientId={patientId} /> : null}
+        {tab === 'tests' ? (
           <View style={card}>
             <Text style={{ fontSize: fontSize.body, color: colors.muted }}>
-              This tab is built in the next step.
+              Blood tests are built in the next step.
             </Text>
           </View>
         ) : null}

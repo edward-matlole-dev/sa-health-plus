@@ -45,3 +45,11 @@ export function formatDateTime(iso: string): string {
   const d = new Date(iso)
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+
+// How many days from today until a date (negative when the date has passed)
+export function daysUntil(iso: string, today: Date = new Date()): number {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  const target = Date.UTC(y, m - 1, d)
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  return Math.round((target - now) / 86400000)
+}
