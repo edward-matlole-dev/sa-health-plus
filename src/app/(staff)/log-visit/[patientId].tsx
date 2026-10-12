@@ -7,6 +7,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { CategoryStep } from '../../../components/visit/CategoryStep'
 import { ChecklistStep, checklistErrors } from '../../../components/visit/ChecklistStep'
+import { MedicationStep, medicationErrors } from '../../../components/visit/MedicationStep'
 import { VisitSaved, type VisitResult } from '../../../components/visit/VisitSaved'
 import { VitalsStep } from '../../../components/visit/VitalsStep'
 import { ErrorBanner, card } from '../../../components/visit/ui'
@@ -16,12 +17,14 @@ import { VITAL_FIELDS } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { useVisitDraft } from '../../../stores/visitDraftStore'
+import { addDaysLocal } from '../../../utils/dates'
 import { validateVitals } from '../../../utils/vitalsValidation'
 
 const STEPS = [
   { key: 'category', label: 'Category' },
   { key: 'checklist', label: 'Checklist' },
   { key: 'vitals', label: 'Vitals' },
+  { key: 'medication', label: 'Meds' },
   { key: 'notes', label: 'Notes' },
 ] as const
 
@@ -126,6 +129,7 @@ export default function LogVisit() {
   const categoryError = category ? null : 'Choose the visit category'
   const listErrors = category ? checklistErrors(category, d.ticks, d.numbers, d.ageGroup) : {}
   const vitals = validateVitals(d.vitals)
+  const medErrors = medicationErrors(d.medications)
   const stepKey = STEPS[step].key
   const isLast = step === STEPS.length - 1
 
@@ -140,6 +144,7 @@ export default function LogVisit() {
     if (stepKey === 'category' && categoryError) return
     if (stepKey === 'checklist' && Object.keys(listErrors).length > 0) return
     if (stepKey === 'vitals' && Object.keys(vitals.errors).length > 0) return
+    if (stepKey === 'medication' && Object.keys(medErrors).length > 0) return
     goTo(step + 1)
   }
 
@@ -149,6 +154,7 @@ export default function LogVisit() {
     if (categoryError) return goTo(0)
     if (Object.keys(listErrors).length > 0) return goTo(1)
     if (Object.keys(vitals.errors).length > 0) return goTo(2)
+    if (Object.keys(medErrors).length > 0) return goTo(3)
 
     const notes = composeNotes(category, d.texts, d.notes)
     if (notes.length > 2000) {
@@ -171,6 +177,21 @@ export default function LogVisit() {
     }
     if (d.ageGroup) indicators.push({ key: `age_group_${d.ageGroup}` })
 
+    // The next collection date is worked out here, in the phone's own time zone
+    const medications = d.medications.map((m) => {
+      const days = m.supplyDays.trim() ? Number(m.supplyDays) : null
+      const volume = m.volumeMl.trim() ? Number(m.volumeMl.replace(',', '.')) : null
+      return {
+        name: m.name.trim(),
+        dosage: m.dosage.trim(),
+        frequency: m.frequency.trim(),
+        supply_days: days,
+        next_collection: days ? addDaysLocal(days) : null,
+        form: m.form,
+        volume_ml: m.form === 'syrup' ? volume : null,
+      }
+    })
+
     setBusy(true)
     const { data, error: rpcError } = await supabase.rpc('log_visit', {
       p_patient_id: patientId,
@@ -182,6 +203,7 @@ export default function LogVisit() {
       p_notes: notes,
       p_vitals: vitalList,
       p_indicators: indicators,
+      p_medications: medications,
     })
     setBusy(false)
 
@@ -190,7 +212,7 @@ export default function LogVisit() {
       if (m.includes('fetch') || m.includes('network'))
         setError('Cannot connect. Check your internet connection and try again. Nothing has been lost.')
       else if (rpcError.code === '23514')
-        setError('One of the readings is outside the possible range. Please check the values.')
+        setError('One of the values is outside the possible range. Please check the entries.')
       else if (rpcError.code === '42501') setError('Only nurses can log visits.')
       else if (rpcError.code === 'P0002') setError('This patient could not be found.')
       else if (rpcError.code === '22023') setError(rpcError.message)
@@ -244,6 +266,7 @@ export default function LogVisit() {
         <ChecklistStep category={category} errors={showErrors ? listErrors : {}} />
       ) : null}
       {stepKey === 'vitals' ? <VitalsStep errors={showErrors ? vitals.errors : {}} /> : null}
+      {stepKey === 'medication' ? <MedicationStep errors={showErrors ? medErrors : {}} /> : null}
       {stepKey === 'notes' ? (
         <>
           <View style={card}>
@@ -297,6 +320,7 @@ export default function LogVisit() {
             <SummaryRow label="Attended by" value={d.attendedBy === 'doctor' ? 'Doctor' : 'Nurse'} />
             <SummaryRow label="Checklist items ticked" value={String(tickCount)} />
             <SummaryRow label="Vital signs recorded" value={String(readingCount)} />
+            <SummaryRow label="Medications dispensed" value={String(d.medications.length)} />
           </View>
         </>
       ) : null}

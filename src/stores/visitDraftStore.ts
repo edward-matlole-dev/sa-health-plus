@@ -3,6 +3,26 @@ import { VITAL_FIELDS, type VitalKey } from '../constants/vitals'
 
 export type Values = Record<VitalKey, string>
 
+export type MedDraft = {
+  id: string
+  form: 'tablet' | 'syrup'
+  name: string
+  dosage: string
+  frequency: string
+  supplyDays: string
+  volumeMl: string
+}
+
+export const newMedication = (): MedDraft => ({
+  id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+  form: 'tablet',
+  name: '',
+  dosage: '',
+  frequency: '',
+  supplyDays: '',
+  volumeMl: '',
+})
+
 const emptyValues = (): Values =>
   Object.fromEntries(VITAL_FIELDS.map((f) => [f.key, ''])) as Values
 
@@ -16,6 +36,7 @@ type Draft = {
   texts: Record<string, string> // text fields of the category
   vitals: Values
   glucoseFasting: boolean
+  medications: MedDraft[]
   generalCondition: string
   urine: string
   notes: string
@@ -31,6 +52,7 @@ const blank = (patientId: string | null): Draft => ({
   texts: {},
   vitals: emptyValues(),
   glucoseFasting: true,
+  medications: [],
   generalCondition: '',
   urine: '',
   notes: '',
