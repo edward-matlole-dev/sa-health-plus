@@ -25,10 +25,10 @@ type Med = {
   status: 'active' | 'stopped'
 }
 
-type Info = { text: string; icon: IconName; fg: string; bg: string }
+export type Info = { text: string; icon: IconName; fg: string; bg: string }
 
 // Collection status: always an icon and words, never colour alone
-function collectionInfo(iso: string | null): Info | null {
+export function collectionInfo(iso: string | null): Info | null {
   if (!iso) return null
   const n = daysUntil(iso)
   if (n < 0) {

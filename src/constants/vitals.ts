@@ -95,3 +95,40 @@ export function calculateBmi(weightKg: number, heightCm: number): number {
   const metres = heightCm / 100
   return Math.round((weightKg / (metres * metres)) * 10) / 10
 }
+
+// What the patient sees in the app. Wording for your supervisor to review.
+export const PATIENT_FLAG_LABELS: Record<string, string> = {
+  hypertensive_crisis: 'Very high blood pressure',
+  high_bp: 'High blood pressure',
+  elevated_bp: 'Slightly high blood pressure',
+  low_bp: 'Low blood pressure',
+  very_high_glucose: 'Very high blood sugar',
+  high_glucose: 'High blood sugar',
+  pre_diabetic_range: 'Blood sugar a little high',
+  low_glucose: 'Low blood sugar',
+  high_fever: 'High temperature',
+  fever: 'Fever',
+  slightly_high_temp: 'Slightly high temperature',
+  hypothermia: 'Low body temperature',
+  critical_spo2: 'Very low oxygen level',
+  low_spo2: 'Low oxygen level',
+  very_high_pulse: 'Very fast heartbeat',
+  high_pulse: 'Fast heartbeat',
+  very_low_pulse: 'Very slow heartbeat',
+  low_pulse: 'Slow heartbeat',
+  very_high_rr: 'Very fast breathing',
+  high_rr: 'Fast breathing',
+  very_low_rr: 'Very slow breathing',
+  low_rr: 'Slow breathing',
+  severely_obese: 'Weight well above the healthy range',
+  obese: 'Weight above the healthy range',
+  overweight: 'Weight a little above the healthy range',
+  severely_underweight: 'Weight well below the healthy range',
+  underweight: 'Weight below the healthy range',
+  severe_malnutrition: 'Arm measurement shows poor nutrition',
+  moderate_malnutrition: 'Arm measurement shows low nutrition',
+  at_risk_malnutrition: 'Arm measurement is a little low',
+  critical_low_hb: 'Very low haemoglobin (blood count)',
+  low_hb: 'Low haemoglobin (blood count)',
+  high_hb: 'High haemoglobin (blood count)',
+}

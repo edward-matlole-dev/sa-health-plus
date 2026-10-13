@@ -14,12 +14,19 @@ const STYLE: Record<VitalStatus, { label: string; icon: IconName; fg: string; bg
   crisis: { label: 'Crisis', icon: 'alert-octagon', fg: '#FFFFFF', bg: '#A32D2D' },
 }
 
-export function StatusBadge({ status }: { status: VitalStatus }) {
+// What the patient sees instead of the clinical words
+const PATIENT_LABEL: Partial<Record<VitalStatus, string>> = {
+  elevated: 'Slightly high',
+  crisis: 'Urgent',
+}
+
+export function StatusBadge({ status, forPatient = false }: { status: VitalStatus; forPatient?: boolean }) {
   const s = STYLE[status]
+  const label = forPatient ? (PATIENT_LABEL[status] ?? s.label) : s.label
   return (
     <View
       accessible
-      accessibilityLabel={`Status: ${s.label}`}
+      accessibilityLabel={`Status: ${label}`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -31,7 +38,7 @@ export function StatusBadge({ status }: { status: VitalStatus }) {
       }}
     >
       <MaterialCommunityIcons name={s.icon} size={18} color={s.fg} />
-      <Text style={{ fontSize: fontSize.small, fontWeight: '700', color: s.fg }}>{s.label}</Text>
+      <Text style={{ fontSize: fontSize.small, fontWeight: '700', color: s.fg }}>{label}</Text>
     </View>
   )
 }

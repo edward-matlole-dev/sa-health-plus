@@ -58,7 +58,7 @@ const nameOf = (p: Person | null) => (p ? `${p.first_name ?? ''} ${p.last_name ?
 
 type Info = { text: string; icon: IconName; fg: string; bg: string }
 
-function pendingStatus(due: string | null): Info {
+export function pendingStatus(due: string | null): Info {
   if (!due) return { text: 'Awaiting result', icon: 'clock-outline', fg: '#185FA5', bg: '#E6F1FB' }
   const n = daysUntil(due)
   if (n < 0) {
