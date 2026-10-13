@@ -142,6 +142,7 @@ export default function Home() {
   )
 
   const goTab = (name: '/checkups' | '/medication') => router.navigate(name)
+  const goScreen = (path: '/my-appointments' | '/my-blood-tests') => router.push(path)
 
   const appt = dash?.appt
   const apptDays = appt ? daysUntil(appt.appointment_date) : null
@@ -159,7 +160,12 @@ export default function Home() {
 
       {dash ? (
         <>
-          <DashCard icon="calendar-clock" title="Next appointment">
+          <DashCard
+            icon="calendar-clock"
+            title="Next appointment"
+            onMore={() => goScreen('/my-appointments')}
+            moreLabel="See all your appointments"
+          >
             {appt && apptDays !== null ? (
               <>
                 <Text style={{ fontSize: fontSize.heading, fontWeight: '700', color: colors.ink }}>
@@ -256,7 +262,12 @@ export default function Home() {
             )}
           </DashCard>
 
-          <DashCard icon="test-tube" title="Your blood tests">
+          <DashCard
+            icon="test-tube"
+            title="Your blood tests"
+            onMore={() => goScreen('/my-blood-tests')}
+            moreLabel="See all your blood tests"
+          >
             {dash.tests.length > 0 ? (
               dash.tests.slice(0, 3).map((t) => {
                 const s = pendingStatus(t.due_date)
