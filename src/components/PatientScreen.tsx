@@ -1,14 +1,28 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fontSize, spacing } from '../constants/theme'
 
-type Props = { title: string; subtitle?: string; showBack?: boolean; children: ReactNode }
+type Props = {
+  title: string
+  subtitle?: string
+  showBack?: boolean
+  scrollEndKey?: number | string
+  children: ReactNode
+}
 
-export function PatientScreen({ title, subtitle, showBack = false, children }: Props) {
+export function PatientScreen({ title, subtitle, showBack = false, scrollEndKey, children }: Props) {
   const insets = useSafeAreaInsets()
+  const scrollRef = useRef<ScrollView>(null)
+
+  useEffect(() => {
+    if (scrollEndKey === undefined) return
+    const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)
+    return () => clearTimeout(id)
+  }, [scrollEndKey])
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
@@ -42,7 +56,11 @@ export function PatientScreen({ title, subtitle, showBack = false, children }: P
           {subtitle ? <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{subtitle}</Text> : null}
         </View>
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+      <ScrollView
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+      >
         {children}
       </ScrollView>
     </View>
