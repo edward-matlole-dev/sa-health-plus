@@ -18,22 +18,28 @@ type Props = {
   title: string
   children: ReactNode
   showBack?: boolean
-  scrollKey?: string | number
+  scrollKey?: string | number // scroll to the top when this changes
+  scrollEndKey?: string | number // scroll to the end when this changes
 }
 
-export function StaffScreen({ title, children, showBack = false, scrollKey }: Props) {
+export function StaffScreen({ title, children, showBack = false, scrollKey, scrollEndKey }: Props) {
   const insets = useSafeAreaInsets()
   const signOut = useAuthStore((s) => s.signOut)
   const role = useAuthStore((s) => s.role)
   const userId = useAuthStore((s) => s.session?.user.id)
   const name = useStaffName((s) => (s.forUser === userId ? s.name : null))
   const loadName = useStaffName((s) => s.load)
-
   const scrollRef = useRef<ScrollView>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false })
   }, [scrollKey])
+
+  useEffect(() => {
+    if (scrollEndKey === undefined) return
+    const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)
+    return () => clearTimeout(id)
+  }, [scrollEndKey])
 
   useEffect(() => {
     if (userId) loadName(userId)

@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
 import type { ComponentProps } from 'react'
-import { colors } from '../../../constants/theme'
-import { useAuthStore } from '../../../stores/authStore'
+import { useEffect } from 'react'
 import type { ColorValue } from 'react-native'
+import { colors } from '../../../constants/theme'
+import { supabase } from '../../../lib/supabase'
+import { useAuthStore } from '../../../stores/authStore'
+import { useStaffUnread } from '../../../stores/staffUnreadStore'
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
 
@@ -15,8 +18,25 @@ const icon =
 
 export default function StaffTabs() {
   const role = useAuthStore((s) => s.role)
+  const unread = useStaffUnread((s) => s.count)
   const isNurse = role === 'nurse'
   const frontDesk = role === 'nurse' || role === 'reception'
+
+  // Keep the unread count up to date, and update it the moment a patient writes
+  useEffect(() => {
+    if (!isNurse) return
+    useStaffUnread.getState().refresh()
+    const channel = supabase
+      .channel('staff-unread')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () =>
+        useStaffUnread.getState().refresh(),
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+      useStaffUnread.getState().clear()
+    }
+  }, [isNurse])
 
   return (
     <Tabs
@@ -51,7 +71,11 @@ export default function StaffTabs() {
         />
         <Tabs.Screen
           name="messages"
-          options={{ title: 'Messages', tabBarIcon: icon('message-text-outline') }}
+          options={{
+            title: 'Messages',
+            tabBarIcon: icon('message-text-outline'),
+            tabBarBadge: unread > 0 ? unread : undefined,
+          }}
         />
       </Tabs.Protected>
     </Tabs>
