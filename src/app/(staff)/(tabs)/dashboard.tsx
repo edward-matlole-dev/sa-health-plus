@@ -12,6 +12,7 @@ import type { VitalStatus } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { daysUntil, formatDate, formatDateTime, toLocalIso } from '../../../utils/dates'
+import { AdminDashboard } from '../../../components/admin/AdminDashboard'
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
 
@@ -246,13 +247,7 @@ export default function Dashboard() {
     }, [load, role]),
   )
 
-  if (role !== 'nurse') {
-    return (
-      <StaffScreen title="Dashboard">
-        <Text style={{ fontSize: fontSize.body, color: colors.muted }}>The admin dashboard is built in a later step.</Text>
-      </StaffScreen>
-    )
-  }
+  if (role !== 'nurse') return <AdminDashboard />
 
   return (
     <StaffScreen title="Dashboard">

@@ -21,6 +21,9 @@ export default function StaffTabs() {
   const unread = useStaffUnread((s) => s.count)
   const isNurse = role === 'nurse'
   const frontDesk = role === 'nurse' || role === 'reception'
+  const isClinicAdmin = role === 'clinic_admin'
+  const isSuperAdmin = role === 'super_admin'
+  const isAdmin = isClinicAdmin || isSuperAdmin
 
   // Keep the unread count up to date, and update it the moment a patient writes
   useEffect(() => {
@@ -76,6 +79,28 @@ export default function StaffTabs() {
             tabBarIcon: icon('message-text-outline'),
             tabBarBadge: unread > 0 ? unread : undefined,
           }}
+        />
+      </Tabs.Protected>
+      <Tabs.Protected guard={isSuperAdmin}>
+        <Tabs.Screen
+          name="clinics"
+          options={{ title: 'Clinics', tabBarIcon: icon('hospital-building') }}
+        />
+      </Tabs.Protected>
+      <Tabs.Protected guard={isAdmin}>
+        <Tabs.Screen
+          name="team"
+          options={{ title: 'Staff', tabBarIcon: icon('account-group-outline') }}
+        />
+      </Tabs.Protected>
+      <Tabs.Protected guard={isClinicAdmin}>
+        <Tabs.Screen
+          name="people"
+          options={{ title: 'Patients', tabBarIcon: icon('account-multiple-outline') }}
+        />
+        <Tabs.Screen
+          name="complaints"
+          options={{ title: 'Complaints', tabBarIcon: icon('comment-alert-outline') }}
         />
       </Tabs.Protected>
     </Tabs>
