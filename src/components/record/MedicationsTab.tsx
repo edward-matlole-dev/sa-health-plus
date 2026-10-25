@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router'
 import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { daysUntil, formatDate, toLocalIso } from '../../utils/dates'
 import { ActionButton } from '../ActionButton'
@@ -118,10 +118,12 @@ export function MedicationsTab({ patientId }: { patientId: string }) {
         style={{
           gap: spacing.sm,
           padding: spacing.md,
-          borderRadius: radius.lg,
-          backgroundColor: isActive ? colors.surface : colors.background,
-          borderWidth: isActive ? 0 : 1.5,
-          borderColor: colors.border,
+          borderRadius: radius.md,
+          backgroundColor: isActive ? staffColors.surface : '#F8FAFB',
+          borderWidth: 1,
+          borderLeftWidth: 4,
+          borderColor: staffColors.border,
+          borderLeftColor: isActive ? staffColors.primary : staffColors.border,
           ...(isActive ? shadow.card : {}),
         }}
       >

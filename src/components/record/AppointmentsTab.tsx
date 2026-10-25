@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
 import { categoryLabel } from '../../constants/categories'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { daysUntil, formatDate, weekdayOf } from '../../utils/dates'
 import { ActionButton } from '../ActionButton'
@@ -122,10 +122,12 @@ export function AppointmentsTab({ patientId }: { patientId: string }) {
         style={{
           gap: spacing.sm,
           padding: spacing.md,
-          borderRadius: radius.lg,
-          backgroundColor: isScheduled ? colors.surface : colors.background,
-          borderWidth: isScheduled ? 0 : 1.5,
-          borderColor: colors.border,
+          borderRadius: radius.md,
+          backgroundColor: isScheduled ? staffColors.surface : '#F8FAFB',
+          borderWidth: 1,
+          borderLeftWidth: 4,
+          borderColor: staffColors.border,
+          borderLeftColor: pastDue ? staffColors.warning : isScheduled ? staffColors.primary : staffColors.border,
           ...(isScheduled ? shadow.card : {}),
         }}
       >

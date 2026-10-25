@@ -8,7 +8,7 @@ import { Field } from '../../../components/Field'
 import { Pill } from '../../../components/Pill'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner } from '../../../components/visit/ui'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { daysUntil, formatDate, formatDateTime } from '../../../utils/dates'
@@ -137,11 +137,13 @@ export default function Complaints() {
         key={c.id}
         style={{
           gap: spacing.sm,
-          padding: spacing.md,
-          borderRadius: radius.lg,
-          backgroundColor: isOpen ? colors.surface : colors.background,
-          borderWidth: isOpen ? 0 : 1.5,
-          borderColor: colors.border,
+          padding: spacing.lg,
+          borderRadius: radius.md,
+          backgroundColor: isOpen ? '#FFFCF8' : staffColors.surface,
+          borderWidth: 1,
+          borderLeftWidth: 5,
+          borderColor: isOpen ? '#F2D8AA' : staffColors.border,
+          borderLeftColor: isOpen ? staffColors.warning : staffColors.success,
           ...(isOpen ? shadow.card : {}),
         }}
       >
@@ -165,7 +167,7 @@ export default function Complaints() {
           <Pill icon="check-circle-outline" text="Resolved" fg="#0F6B49" bg="#E6F2EC" />
         )}
 
-        <View style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.background }}>
+        <View style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: staffColors.background }}>
           <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.muted }}>The patient wrote</Text>
           <Text style={{ fontSize: fontSize.body, color: colors.ink }}>{c.body}</Text>
         </View>

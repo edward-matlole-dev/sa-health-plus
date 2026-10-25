@@ -78,6 +78,7 @@ type AuthState = {
   initialise: () => Promise<void>
   signInPatient: (patientNumber: string, pin: string) => Promise<boolean>
   signInStaff: (email: string, password: string) => Promise<boolean>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>
   signOut: () => Promise<void>
   clearError: () => void
 }
@@ -172,6 +173,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     await AsyncStorage.setItem(ROLE_KEY, result.role)
     set({ busy: false, session: result.session, role: result.role })
+    return true
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    if (get().busy) return false
+    set({ busy: true, error: null })
+
+    // Supabase JS 2.102+ verifies current_password when the project has that
+    // security control enabled. Supplying it here also means this client is
+    // ready for that production setting without a client release.
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+      current_password: currentPassword,
+    })
+
+    if (error) {
+      const message = error.code === 'reauthentication_needed'
+        ? 'Please sign in again, then try changing your security code.'
+        : error.code === 'same_password'
+          ? 'Choose a different PIN or password.'
+          : error.code === 'weak_password'
+            ? 'Your new PIN or password does not meet the security requirements.'
+            : describeError(error.message)
+      set({ busy: false, error: message })
+      return false
+    }
+
+    set({ busy: false })
     return true
   },
 

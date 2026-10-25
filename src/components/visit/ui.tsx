@@ -1,12 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 
 export const card = {
   gap: spacing.md,
   padding: spacing.lg,
-  borderRadius: radius.xl,
-  backgroundColor: colors.surface,
+  borderRadius: radius.md,
+  borderWidth: 1,
+  borderColor: staffColors.border,
+  backgroundColor: staffColors.surface,
   ...shadow.card,
 } as const
 

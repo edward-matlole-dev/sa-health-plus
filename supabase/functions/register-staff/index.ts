@@ -2,6 +2,7 @@ import { adminClient, cors, getCaller, json } from '../_shared/common.ts'
 
 const STAFF_ROLES = ['reception', 'nurse', 'clinic_admin']
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -24,7 +25,9 @@ Deno.serve(async (req) => {
     const role = String(body.role ?? '')
 
     if (!EMAIL.test(email)) return json({ error: 'Enter a valid email address' }, 400)
-    if (password.length < 8) return json({ error: 'Password must be at least 8 characters' }, 400)
+    if (!STRONG_PASSWORD.test(password)) {
+      return json({ error: 'Use 12 or more characters with uppercase, lowercase, a number and a symbol' }, 400)
+    }
     if (!firstName || !lastName || firstName.length > 60 || lastName.length > 60) {
       return json({ error: 'First and last name are required (up to 60 characters)' }, 400)
     }

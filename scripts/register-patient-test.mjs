@@ -17,8 +17,10 @@ async function register(label, body) {
     const status = error.context?.status
     const detail = error.context?.json ? await error.context.json().catch(() => null) : null
     console.log(label.padEnd(24), '->', status, JSON.stringify(detail))
+    return null
   } else {
     console.log(label.padEnd(24), '-> OK', data.patient_number)
+    return data
   }
 }
 
@@ -38,7 +40,7 @@ if (nurseError) {
 }
 
 console.log('--- Registration (as the test nurse) ---')
-await register('1 valid female', {
+const firstPatient = await register('1 valid female', {
   first_name: 'Thandi', last_name: 'Test', id_number: '9503150123085', phone: '0712345678',
 })
 await register('2 valid male', {
@@ -61,9 +63,9 @@ console.log('--- Who can see what ---')
 await listPatients('Nurse sees')
 await supabase.auth.signOut()
 
-// The PIN of SA-1000001 is the last six digits of 9503150123085
+// The registration service creates a random PIN; never derive it from an ID number.
 const { error: patientError } = await supabase.auth.signInWithPassword({
-  email: 'sa-1000001@patients.example.com', password: '123085',
+  email: `${firstPatient.patient_number.toLowerCase()}@patients.example.com`, password: firstPatient.initial_pin,
 })
 console.log('Patient sign-in'.padEnd(24), '->', patientError ? 'FAILED: ' + patientError.message : 'OK')
 

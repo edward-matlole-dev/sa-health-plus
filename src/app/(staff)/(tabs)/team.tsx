@@ -8,7 +8,7 @@ import { Pill } from '../../../components/Pill'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner } from '../../../components/visit/ui'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 
@@ -94,7 +94,7 @@ export default function Team() {
       {adding ? (
         <AddStaffForm isSuper={isSuper} onClose={() => setAdding(false)} onChanged={load} />
       ) : (
-        <PrimaryButton label="Add a staff member" icon="account-plus-outline" onPress={() => setAdding(true)} />
+        <PrimaryButton tone="staff" label="Add a staff member" icon="account-plus-outline" onPress={() => setAdding(true)} />
       )}
 
       {message ? <ErrorBanner text={message} /> : null}
@@ -117,15 +117,22 @@ export default function Team() {
             key={m.id}
             style={{
               gap: spacing.sm,
-              padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: m.is_active ? colors.surface : colors.background,
-              borderWidth: m.is_active ? 0 : 1.5,
-              borderColor: colors.border,
+              padding: spacing.lg,
+              borderRadius: radius.md,
+              backgroundColor: staffColors.surface,
+              borderWidth: 1,
+              borderColor: m.is_active ? staffColors.tealBorder : staffColors.border,
+              borderLeftWidth: 5,
+              borderLeftColor: m.is_active ? staffColors.primary : staffColors.border,
               ...(m.is_active ? shadow.card : {}),
             }}
           >
-            <Text style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.ink }}>{name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <View style={{ width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: m.is_active ? staffColors.tealTint : '#E9EEEB' }}>
+                <MaterialCommunityIcons name="account-tie-outline" size={25} color={m.is_active ? staffColors.primary : colors.muted} />
+              </View>
+              <Text style={{ flex: 1, fontSize: fontSize.body + 2, fontWeight: '800', color: colors.ink }}>{name}</Text>
+            </View>
             <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
               {ROLE_LABEL[m.role]}
               {isSuper && m.clinics ? ` · ${m.clinics.name}` : ''}

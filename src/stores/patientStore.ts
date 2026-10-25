@@ -6,12 +6,15 @@ export type PatientInfo = {
   first_name: string
   last_name: string
   patient_number: string
+  sms_enabled: boolean
+  push_enabled: boolean
 }
 
 type State = {
   forUser: string | null
   patient: PatientInfo | null
   load: (userId: string) => Promise<void>
+  updateNotifications: (smsEnabled: boolean, pushEnabled: boolean) => Promise<boolean>
 }
 
 // The signed-in patient's own record, tied to the user id so that nobody ever sees the previous patient's name
@@ -25,7 +28,7 @@ export const usePatient = create<State>((set, get) => ({
 
     const { data, error } = await supabase
       .from('patients')
-      .select('id, first_name, last_name, patient_number')
+      .select('id, first_name, last_name, patient_number, sms_enabled, push_enabled')
       .eq('user_id', userId)
       .maybeSingle()
 
@@ -35,5 +38,19 @@ export const usePatient = create<State>((set, get) => ({
       return
     }
     set({ patient: data as PatientInfo })
+  },
+
+  updateNotifications: async (smsEnabled, pushEnabled) => {
+    const patient = get().patient
+    if (!patient) return false
+    const { error } = await supabase
+      .from('patients')
+      .update({ sms_enabled: smsEnabled, push_enabled: pushEnabled })
+      .eq('id', patient.id)
+    if (error) return false
+    if (get().patient?.id === patient.id) {
+      set({ patient: { ...patient, sms_enabled: smsEnabled, push_enabled: pushEnabled } })
+    }
+    return true
   },
 }))

@@ -7,7 +7,7 @@ import { Field } from '../../../components/Field'
 import { Pill } from '../../../components/Pill'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner } from '../../../components/visit/ui'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { formatAge, formatDate } from '../../../utils/dates'
@@ -110,8 +110,8 @@ export default function People() {
         autoCorrect={false}
       />
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}>
-        <MaterialCommunityIcons name="lock-outline" size={20} color={colors.primary} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.tealBorder, backgroundColor: staffColors.tealTint }}>
+        <MaterialCommunityIcons name="lock-outline" size={20} color={staffColors.primary} />
         <Text style={{ flex: 1, fontSize: fontSize.small, color: colors.ink }}>
           You can manage patient accounts here. Clinical records can be seen by nurses, not by administrators.
         </Text>
@@ -142,15 +142,24 @@ export default function People() {
             key={p.id}
             style={{
               gap: spacing.sm,
-              padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: p.is_active ? colors.surface : colors.background,
-              borderWidth: p.is_active ? 0 : 1.5,
-              borderColor: colors.border,
+              padding: spacing.lg,
+              borderRadius: radius.md,
+              backgroundColor: staffColors.surface,
+              borderWidth: 1,
+              borderColor: p.is_active ? staffColors.tealBorder : staffColors.border,
+              borderLeftWidth: 5,
+              borderLeftColor: p.is_active ? staffColors.primary : staffColors.border,
               ...(p.is_active ? shadow.card : {}),
             }}
           >
-            <Text style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.ink }}>{name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <View style={{ width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: p.is_active ? colors.accentTint : '#E9EEEB' }}>
+                <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: p.is_active ? colors.accent : colors.muted }}>
+                  {`${p.first_name[0] ?? ''}${p.last_name[0] ?? ''}`.toUpperCase()}
+                </Text>
+              </View>
+              <Text style={{ flex: 1, fontSize: fontSize.body + 2, fontWeight: '800', color: colors.ink }}>{name}</Text>
+            </View>
             <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
               {p.patient_number} · {formatAge(p.date_of_birth)} · {p.gender === 'female' ? 'Female' : 'Male'} · Registered{' '}
               {formatDate(p.created_at.slice(0, 10))}

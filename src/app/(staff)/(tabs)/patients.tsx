@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { Field } from '../../../components/Field'
 import { StaffScreen } from '../../../components/StaffScreen'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { formatAge } from '../../../utils/dates'
 import { type PatientRow, searchPatients } from '../../../utils/patientSearch'
 
@@ -88,17 +88,28 @@ export default function Patients() {
                 }
                 accessibilityRole="button"
                 accessibilityLabel={`Open the record of ${p.first_name} ${p.last_name}, ${p.patient_number}`}
-                style={{
+                style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: spacing.md,
                   minHeight: 72,
                   padding: spacing.md,
-                  borderRadius: radius.lg,
-                  backgroundColor: colors.surface,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: staffColors.border,
+                  borderLeftWidth: 4,
+                  borderLeftColor: staffColors.primary,
+                  backgroundColor: staffColors.surface,
+                  opacity: pressed ? 0.82 : 1,
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
                   ...shadow.card,
-                }}
+                })}
               >
+                <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: staffColors.tealTint }}>
+                  <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: staffColors.primary }}>
+                    {`${p.first_name[0] ?? ''}${p.last_name[0] ?? ''}`.toUpperCase()}
+                  </Text>
+                </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.ink }}>
                     {p.first_name} {p.last_name}

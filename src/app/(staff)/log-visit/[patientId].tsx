@@ -13,7 +13,7 @@ import { VisitSaved, type VisitResult } from '../../../components/visit/VisitSav
 import { VitalsStep } from '../../../components/visit/VitalsStep'
 import { ErrorBanner, card } from '../../../components/visit/ui'
 import { type Category, categoryLabel, getCategory } from '../../../constants/categories'
-import { colors, fontSize, radius, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, spacing, staffColors } from '../../../constants/theme'
 import { VITAL_FIELDS } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
@@ -60,9 +60,9 @@ function StepIndicator({ current }: { current: number }) {
                 borderRadius: radius.pill,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: done || active ? colors.primary : colors.surface,
+                backgroundColor: done || active ? staffColors.primary : staffColors.surface,
                 borderWidth: 2,
-                borderColor: done || active ? colors.primary : colors.inputBorder,
+                borderColor: done || active ? staffColors.primary : staffColors.border,
               }}
             >
               {done ? (
@@ -271,7 +271,7 @@ export default function LogVisit() {
   return (
     <StaffScreen title="Log visit" showBack scrollKey={step}>
       {patient ? (
-        <View style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}>
+        <View style={{ padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.tealBorder, backgroundColor: staffColors.tealTint }}>
           <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
             {patient.first_name} {patient.last_name}
           </Text>
@@ -352,9 +352,9 @@ export default function LogVisit() {
       {error ? <ErrorBanner text={error} /> : null}
 
       {isLast ? (
-        <PrimaryButton label="Save visit" icon="check" onPress={save} loading={busy} />
+        <PrimaryButton tone="staff" label="Save visit" icon="check" onPress={save} loading={busy} />
       ) : (
-        <PrimaryButton label="Next" icon="arrow-right" onPress={next} />
+        <PrimaryButton tone="staff" label="Next" icon="arrow-right" onPress={next} />
       )}
       {step > 0 ? (
         <Pressable

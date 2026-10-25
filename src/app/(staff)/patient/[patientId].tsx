@@ -3,13 +3,14 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
 import { Chip } from '../../../components/Chip'
+import { ActionButton } from '../../../components/ActionButton'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { CheckupsTab } from '../../../components/record/CheckupsTab'
 import { AppointmentsTab } from '../../../components/record/AppointmentsTab'
 import { MedicationsTab } from '../../../components/record/MedicationsTab'
 import { BloodTestsTab } from '../../../components/record/BloodTestsTab'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { formatAge, formatDate } from '../../../utils/dates'
@@ -37,8 +38,8 @@ const TABS: { key: TabKey; label: string }[] = [
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ gap: 2 }}>
-      <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.muted }}>{label}</Text>
-      <Text style={{ fontSize: fontSize.body, color: colors.ink }}>{value}</Text>
+      <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', letterSpacing: 0.25, color: staffColors.muted }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontSize: fontSize.body, color: staffColors.text }}>{value}</Text>
     </View>
   )
 }
@@ -49,6 +50,11 @@ export default function PatientRecord() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [state, setState] = useState<LoadState>('loading')
   const [tab, setTab] = useState<TabKey>('checkups')
+  const [confirmPinResetFor, setConfirmPinResetFor] = useState<string | null>(null)
+  const [resettingPin, setResettingPin] = useState(false)
+  const [newPin, setNewPin] = useState<string | null>(null)
+  const [pinResetFor, setPinResetFor] = useState<string | null>(null)
+  const [pinResetError, setPinResetError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!patientId) return
@@ -79,6 +85,24 @@ export default function PatientRecord() {
     </View>
   )
 
+  const resetPin = async () => {
+    if (!patientId || resettingPin) return
+    setResettingPin(true)
+    setPinResetError(null)
+    const { data, error } = await supabase.functions.invoke('reset-patient-pin', { body: { patient_id: patientId } })
+    setResettingPin(false)
+    if (error || !data?.initial_pin) {
+      setPinResetError('Could not reset the PIN. Check your connection and try again.')
+      return
+    }
+    setConfirmPinResetFor(null)
+    setNewPin(String(data.initial_pin))
+    setPinResetFor(patientId)
+  }
+
+  const displayedPin = pinResetFor === patientId ? newPin : null
+  const confirmingPinReset = confirmPinResetFor === patientId
+
   let body
   if (role !== 'nurse') {
     body = notice('lock-outline', 'Patient records are only available to nurses.')
@@ -95,12 +119,14 @@ export default function PatientRecord() {
           style={{
             gap: spacing.md,
             padding: spacing.lg,
-            borderRadius: radius.xl,
-            backgroundColor: colors.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: staffColors.tealBorder,
+            backgroundColor: '#EAF6F6',
             ...shadow.card,
           }}
         >
-          <Text accessibilityRole="header" style={{ fontSize: fontSize.title - 4, fontWeight: '700', color: colors.heading }}>
+          <Text accessibilityRole="header" style={{ fontSize: fontSize.title - 4, fontWeight: '800', color: staffColors.text }}>
             {patient.first_name} {patient.last_name}
           </Text>
           <View
@@ -109,10 +135,10 @@ export default function PatientRecord() {
               paddingVertical: spacing.xs,
               paddingHorizontal: spacing.md,
               borderRadius: radius.pill,
-              backgroundColor: colors.tint,
+              backgroundColor: staffColors.primary,
             }}
           >
-            <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.heading }}>
+            <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: staffColors.surface }}>
               {patient.patient_number}
             </Text>
           </View>
@@ -128,6 +154,49 @@ export default function PatientRecord() {
           icon="clipboard-plus-outline"
           onPress={() => router.push({ pathname: '/log-visit/[patientId]', params: { patientId } })}
         />
+
+        <ActionButton
+          label="Send safe SMS reminder"
+          kind="outline"
+          accessibilityLabel={`Send a safe SMS reminder to ${patient.first_name} ${patient.last_name}`}
+          onPress={() => router.push({ pathname: '/send-sms/[patientId]', params: { patientId } } as never)}
+        />
+
+        <View style={{ gap: spacing.sm, padding: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.border, backgroundColor: staffColors.surface, ...shadow.card }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <MaterialCommunityIcons name="shield-key-outline" size={24} color={colors.primary} />
+            <Text accessibilityRole="header" style={{ flex: 1, fontSize: fontSize.body + 1, fontWeight: '700', color: colors.heading }}>
+              Patient PIN
+            </Text>
+          </View>
+          {displayedPin ? (
+            <>
+              <Text style={{ fontSize: fontSize.body, color: colors.ink }}>Give this new PIN to the patient privately. It is shown only now.</Text>
+              <Text selectable accessibilityLabel={`New patient PIN ${displayedPin}`} style={{ fontSize: fontSize.title, fontWeight: '700', letterSpacing: 2, color: colors.heading }}>
+                {displayedPin}
+              </Text>
+              <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Ask the patient to change it in Settings after signing in.</Text>
+            </>
+          ) : confirmingPinReset ? (
+            <>
+              <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: '#854F0B' }}>
+                Confirm the patient&apos;s identity in person before resetting their PIN. Their old PIN will stop working immediately.
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                <ActionButton label="Reset PIN" kind="danger" accessibilityLabel={`Confirm PIN reset for ${patient.first_name} ${patient.last_name}`} onPress={resetPin} disabled={resettingPin} />
+                <ActionButton label="Cancel" kind="outline" accessibilityLabel="Cancel patient PIN reset" onPress={() => setConfirmPinResetFor(null)} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Use this only after verifying the patient&apos;s identity. Each reset is recorded for security review.</Text>
+              <View style={{ alignSelf: 'flex-start' }}>
+                <ActionButton label="Reset patient PIN" kind="outline" accessibilityLabel={`Reset the PIN for ${patient.first_name} ${patient.last_name}`} onPress={() => setConfirmPinResetFor(patientId)} />
+              </View>
+            </>
+          )}
+          {pinResetError ? <Text accessibilityRole="alert" style={{ fontSize: fontSize.small, color: colors.error }}>{pinResetError}</Text> : null}
+        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist">
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>

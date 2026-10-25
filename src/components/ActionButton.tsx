@@ -1,5 +1,5 @@
 import { Pressable, Text } from 'react-native'
-import { colors, fontSize, radius, spacing } from '../constants/theme'
+import { fontSize, radius, spacing, staffColors } from '../constants/theme'
 
 type Props = {
   label: string
@@ -18,23 +18,24 @@ export function ActionButton({ label, onPress, kind = 'primary', disabled, acces
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={{
+      style={({ pressed }) => ({
         minHeight: 44,
         paddingHorizontal: spacing.lg,
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: radius.pill,
         borderWidth: 1.5,
-        borderColor: primary ? colors.primary : danger ? colors.error : colors.inputBorder,
-        backgroundColor: primary ? colors.primary : colors.surface,
-        opacity: disabled ? 0.5 : 1,
-      }}
+        borderColor: primary ? staffColors.primary : danger ? staffColors.danger : staffColors.border,
+        backgroundColor: primary ? staffColors.primary : staffColors.surface,
+        opacity: disabled ? 0.5 : pressed ? 0.82 : 1,
+        transform: [{ scale: pressed && !disabled ? 0.97 : 1 }],
+      })}
     >
       <Text
         style={{
           fontSize: fontSize.small + 1,
           fontWeight: '700',
-          color: primary ? colors.white : danger ? colors.error : colors.ink,
+          color: primary ? staffColors.surface : danger ? staffColors.danger : staffColors.text,
         }}
       >
         {label}

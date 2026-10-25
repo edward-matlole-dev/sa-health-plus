@@ -1,15 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
 import type { ComponentProps, ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { StaffScreen } from '../../../components/StaffScreen'
+import { FeatureHero } from '../../../components/FeatureHero'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { ErrorBanner } from '../../../components/visit/ui'
 import { categoryLabel } from '../../../constants/categories'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import type { VitalStatus } from '../../../constants/vitals'
 import { supabase } from '../../../lib/supabase'
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout'
 import { useAuthStore } from '../../../stores/authStore'
 import { daysUntil, formatDate, formatDateTime, toLocalIso } from '../../../utils/dates'
 import { AdminDashboard } from '../../../components/admin/AdminDashboard'
@@ -56,33 +59,52 @@ const worst = (v: { status: VitalStatus }[]): VitalStatus =>
 const PATIENT = 'patients(id, first_name, last_name, patient_number)'
 const nameOf = (p: PatientRef | null) => (p ? `${p.first_name} ${p.last_name}` : 'Unknown patient')
 
+const DASHBOARD_TONES = {
+  queue: { accent: staffColors.primary, tint: staffColors.tealTint, surface: '#F4FBFB', border: staffColors.tealBorder, icon: 'account-clock-outline' },
+  consultation: { accent: staffColors.info, tint: staffColors.infoTint, surface: '#F5FAFD', border: '#C5E5F4', icon: 'stethoscope' },
+  review: { accent: staffColors.warning, tint: staffColors.warningTint, surface: '#FFF9F0', border: '#F3D5B6', icon: 'alert-outline' },
+  tests: { accent: staffColors.info, tint: staffColors.infoTint, surface: '#F5FAFD', border: '#C5E5F4', icon: 'test-tube' },
+  appointments: { accent: '#8A4D0F', tint: '#FFF0D8', surface: '#FFFAF3', border: '#F1D5AD', icon: 'calendar-alert' },
+  medication: { accent: '#6D4AA0', tint: '#F0E9FF', surface: '#FAF7FF', border: '#DDD0F5', icon: 'pill' },
+} as const
+
+type DashboardTone = keyof typeof DASHBOARD_TONES
+
 function Tile({
   icon,
   label,
   value,
   note,
   onPress,
+  tone = 'queue',
 }: {
   icon: IconName
   label: string
   value: number
   note?: string
   onPress?: () => void
+  tone?: DashboardTone
 }) {
+  const { isDesktop, isTablet } = useResponsiveLayout()
+  const palette = DASHBOARD_TONES[tone]
   const content = (
     <>
-      <MaterialCommunityIcons name={icon} size={26} color={colors.primary} />
-      <Text style={{ fontSize: fontSize.title, fontWeight: '700', color: colors.heading }}>{value}</Text>
+      <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: palette.tint }}>
+        <MaterialCommunityIcons name={icon} size={23} color={palette.accent} />
+      </View>
+      <Text style={{ fontSize: fontSize.title + 4, fontWeight: '800', letterSpacing: -0.8, color: palette.accent }}>{value}</Text>
       <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.ink }}>{label}</Text>
-      {note ? <Text style={{ fontSize: fontSize.small - 1, color: colors.muted }}>{note}</Text> : null}
+      {note ? <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: palette.accent }}>{note}</Text> : null}
     </>
   )
   const style = {
-    width: '48%',
-    gap: 2,
+    width: isDesktop ? '31.8%' : isTablet ? '48%' : '100%',
+    gap: 3,
     padding: spacing.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
     ...shadow.card,
   } as const
 
@@ -91,7 +113,7 @@ function Tile({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}. Open the queue.`}
-      style={style}
+      style={({ pressed }) => [style, { opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}
     >
       {content}
     </Pressable>
@@ -109,6 +131,7 @@ function Section({
   shown,
   empty,
   children,
+  tone = 'queue',
 }: {
   title: string
   icon: IconName
@@ -116,48 +139,70 @@ function Section({
   shown: number
   empty: string
   children: ReactNode
+  tone?: DashboardTone
 }) {
+  const palette = DASHBOARD_TONES[tone]
   return (
-    <View
+    <LinearGradient
+      colors={[palette.surface, colors.surface]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={{
         gap: spacing.sm,
         padding: spacing.lg,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderLeftWidth: 5,
+        borderColor: palette.border,
+        borderLeftColor: palette.accent,
         ...shadow.card,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <MaterialCommunityIcons name={icon} size={24} color={colors.primary} />
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: fontSize.body + 1, fontWeight: '700', color: colors.heading }}>
+        <View style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: palette.tint }}>
+          <MaterialCommunityIcons name={icon} size={22} color={palette.accent} />
+        </View>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: fontSize.body + 2, fontWeight: '800', letterSpacing: -0.2, color: colors.heading }}>
           {title}
         </Text>
+        <View style={{ minWidth: 34, height: 34, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.pill, backgroundColor: palette.tint }}>
+          <Text style={{ fontSize: fontSize.small, fontWeight: '800', color: palette.accent }}>{total}</Text>
+        </View>
       </View>
       {total === 0 ? <Text style={{ fontSize: fontSize.body, color: colors.muted }}>{empty}</Text> : children}
       {total > shown ? (
         <Text style={{ fontSize: fontSize.small, color: colors.muted }}>and {total - shown} more</Text>
       ) : null}
-    </View>
+    </LinearGradient>
   )
 }
 
-function PatientRow({ patient, line, right }: { patient: PatientRef | null; line: string; right?: ReactNode }) {
+function PatientRow({ patient, line, right, tone = 'queue' }: { patient: PatientRef | null; line: string; right?: ReactNode; tone?: DashboardTone }) {
+  const palette = DASHBOARD_TONES[tone]
+  const initials = patient ? `${patient.first_name[0] ?? ''}${patient.last_name[0] ?? ''}`.toUpperCase() : '?'
   return (
     <Pressable
       disabled={!patient}
       onPress={() => patient && router.push({ pathname: '/patient/[patientId]', params: { patientId: patient.id } })}
       accessibilityRole="button"
       accessibilityLabel={`Open the record of ${nameOf(patient)}. ${line}`}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.sm,
-        minHeight: 60,
-        paddingVertical: spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-      }}
+        minHeight: 68,
+        padding: spacing.sm,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: palette.border,
+        backgroundColor: staffColors.surface,
+        opacity: pressed ? 0.78 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
+      })}
     >
+      <View style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: palette.tint }}>
+        <Text style={{ fontSize: fontSize.small, fontWeight: '800', color: palette.accent }}>{initials}</Text>
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.ink }}>{nameOf(patient)}</Text>
         <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{line}</Text>
@@ -256,21 +301,30 @@ export default function Dashboard() {
 
       {dash ? (
         <>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
-            <Text style={{ flex: 1, fontSize: fontSize.small, color: colors.muted }}>
-              Updated {formatDateTime(dash.at.toISOString())}
-            </Text>
-            <Pressable
-              onPress={load}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Refresh the dashboard"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44, opacity: busy ? 0.5 : 1 }}
-            >
-              <MaterialCommunityIcons name="refresh" size={22} color={colors.primary} />
-              <Text style={{ fontSize: fontSize.small + 1, fontWeight: '700', color: colors.primary }}>Refresh</Text>
-            </Pressable>
-          </View>
+          <FeatureHero
+            eyebrow="Clinic operations"
+            title="Focus your team on what needs attention."
+            description="A calm, live view of patients waiting, active consultations and tasks that need follow-up."
+            icon="view-dashboard-outline"
+            tone="staff"
+            footer={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: '#FFFFFF20' }}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color={colors.white} />
+                  <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.white }}>Updated {formatDateTime(dash.at.toISOString())}</Text>
+                </View>
+                <Pressable
+                  onPress={load}
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh the dashboard"
+                  style={({ pressed }) => ({ width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#FFFFFF25', opacity: busy || pressed ? 0.65 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] })}
+                >
+                  <MaterialCommunityIcons name="refresh" size={20} color={colors.white} />
+                </Pressable>
+              </View>
+            }
+          />
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md }}>
             <Tile
@@ -279,12 +333,13 @@ export default function Dashboard() {
               value={dash.waiting}
               note={dash.urgent > 0 ? `${dash.urgent} urgent` : undefined}
               onPress={() => router.navigate('/queue')}
+              tone="queue"
             />
-            <Tile icon="stethoscope" label="In consultation" value={dash.inConsult} />
-            <Tile icon="alert-outline" label="Flagged visits" value={dash.flaggedTotal} note="last 7 days" />
-            <Tile icon="test-tube" label="Overdue tests" value={dash.testsTotal} />
-            <Tile icon="calendar-alert" label="Past-due appointments" value={dash.apptsTotal} />
-            <Tile icon="pill" label="Collections overdue" value={dash.medsTotal} />
+            <Tile icon="stethoscope" label="In consultation" value={dash.inConsult} tone="consultation" />
+            <Tile icon="alert-outline" label="Flagged visits" value={dash.flaggedTotal} note="last 7 days" tone="review" />
+            <Tile icon="test-tube" label="Overdue tests" value={dash.testsTotal} tone="tests" />
+            <Tile icon="calendar-alert" label="Past-due appointments" value={dash.apptsTotal} tone="appointments" />
+            <Tile icon="pill" label="Collections overdue" value={dash.medsTotal} tone="medication" />
           </View>
 
           <Section
@@ -293,6 +348,7 @@ export default function Dashboard() {
             total={dash.flaggedTotal}
             shown={dash.flagged.length}
             empty="No flagged visits in the last 7 days."
+            tone="review"
           >
             {dash.flagged.map((v) => (
               <PatientRow
@@ -300,6 +356,7 @@ export default function Dashboard() {
                 patient={v.patients}
                 line={`${categoryLabel(v.appointment_type)} · ${formatDateTime(v.visit_date)}`}
                 right={<StatusBadge status={worst(v.vitals ?? [])} />}
+                tone="review"
               />
             ))}
           </Section>
@@ -310,9 +367,10 @@ export default function Dashboard() {
             total={dash.testsTotal}
             shown={dash.tests.length}
             empty="No blood tests are overdue."
+            tone="tests"
           >
             {dash.tests.map((x) => (
-              <PatientRow key={x.id} patient={x.patients} line={`${x.test_name} · ${overdue(x.due_date)}`} />
+              <PatientRow key={x.id} patient={x.patients} line={`${x.test_name} · ${overdue(x.due_date)}`} tone="tests" />
             ))}
           </Section>
 
@@ -322,12 +380,14 @@ export default function Dashboard() {
             total={dash.apptsTotal}
             shown={dash.appts.length}
             empty="No appointments are waiting to be marked."
+            tone="appointments"
           >
             {dash.appts.map((x) => (
               <PatientRow
                 key={x.id}
                 patient={x.patients}
                 line={`${categoryLabel(x.type)} · was ${formatDate(x.appointment_date)}${x.priority === 'urgent' ? ' · Urgent' : ''}`}
+                tone="appointments"
               />
             ))}
           </Section>
@@ -338,9 +398,10 @@ export default function Dashboard() {
             total={dash.medsTotal}
             shown={dash.meds.length}
             empty="No medication collections are overdue."
+            tone="medication"
           >
             {dash.meds.map((x) => (
-              <PatientRow key={x.id} patient={x.patients} line={`${x.name} · ${overdue(x.next_collection)}`} />
+              <PatientRow key={x.id} patient={x.patients} line={`${x.name} · ${overdue(x.next_collection)}`} tone="medication" />
             ))}
           </Section>
         </>

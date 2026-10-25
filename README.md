@@ -1,56 +1,33 @@
-# Welcome to your Expo app 👋
+# SA Health+
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+SA Health+ is a mobile-first clinic records app for South African patients and clinic staff. It is built with Expo Router, React Native, Supabase, and Row Level Security.
 
-## Get started
+## Run locally
 
-1. Install dependencies
+1. Copy `.env.example` to `.env` and set the Supabase URL and publishable/anon key.
+2. Install dependencies with `npm install`.
+3. Start the app with `npx expo start`.
 
-   ```bash
-   npm install
-   ```
+Useful checks:
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+npm run lint
+npm run typecheck
+npx expo-doctor
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Core capabilities
 
-### Other setup steps
+- Separate patient, nurse, reception, clinic-admin, and super-admin experiences.
+- Patient records, appointments, medication, blood-test and vital-sign views.
+- Secure in-app patient/staff conversations with live unread indicators.
+- Patient settings for language, SMS consent, app-notification consent, and PIN changes.
+- Current-credential-verified password/PIN changes for every signed-in account.
+- Consent-gated, audited clinic SMS reminders using templates that do not disclose health information.
+- Aggregate-only clinic analytics for administrators.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Backend
 
-## Learn more
+Database schema and access policies are in `supabase/migrations`. Privileged actions use Edge Functions in `supabase/functions`; deploy those functions only after applying the migrations. The app must never receive a service-role key or SMS-provider credential.
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Read [the release checklist](docs/RELEASE_CHECKLIST.md) before configuring EAS, deploying Supabase, or submitting to the stores.

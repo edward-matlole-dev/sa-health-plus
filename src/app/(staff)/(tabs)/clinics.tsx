@@ -10,7 +10,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner, InlineError } from '../../../components/visit/ui'
 import { PROVINCES } from '../../../constants/provinces'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 
@@ -79,8 +79,10 @@ function ClinicForm({
       style={{
         gap: spacing.md,
         padding: spacing.lg,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: staffColors.border,
+        backgroundColor: staffColors.surface,
         ...shadow.card,
       }}
     >
@@ -119,7 +121,7 @@ function ClinicForm({
       />
 
       {error ? <ErrorBanner text={error} /> : null}
-      <PrimaryButton label={initial ? 'Save changes' : 'Add clinic'} icon="check" onPress={submit} loading={busy} />
+      <PrimaryButton tone="staff" label={initial ? 'Save changes' : 'Add clinic'} icon="check" onPress={submit} loading={busy} />
       <Pressable onPress={onClose} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.muted }}>Cancel</Text>
       </Pressable>
@@ -191,6 +193,7 @@ export default function Clinics() {
         <ClinicForm initial={editing} onClose={() => setMode('list')} onSaved={done} />
       ) : (
         <PrimaryButton
+          tone="staff"
           label="Add a clinic"
           icon="plus"
           onPress={() => {
@@ -203,7 +206,7 @@ export default function Clinics() {
       {notice ? (
         <View
           accessibilityRole="alert"
-          style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}
+          style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.tealBorder, backgroundColor: staffColors.tealTint }}
         >
           <MaterialCommunityIcons name="check-circle-outline" size={22} color={colors.primary} />
           <Text style={{ flex: 1, fontSize: fontSize.small, fontWeight: '600', color: colors.heading }}>{notice}</Text>
@@ -236,18 +239,36 @@ export default function Clinics() {
           key={c.id}
           style={{
             gap: spacing.sm,
-            padding: spacing.md,
-            borderRadius: radius.lg,
-            backgroundColor: colors.surface,
+            padding: spacing.lg,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: c.is_active ? staffColors.tealBorder : staffColors.border,
+            borderLeftWidth: 5,
+            borderLeftColor: c.is_active ? staffColors.primary : staffColors.border,
+            backgroundColor: staffColors.surface,
             ...shadow.card,
           }}
         >
-          <Text style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.ink }}>{c.name}</Text>
-          <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{c.province}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <View style={{ width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: c.is_active ? colors.tint : '#E9EEEB' }}>
+              <MaterialCommunityIcons name="hospital-building" size={24} color={c.is_active ? colors.primary : colors.muted} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: fontSize.body + 2, fontWeight: '800', color: colors.ink }}>{c.name}</Text>
+              <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{c.province}</Text>
+            </View>
+          </View>
           {c.address ? <Text style={{ fontSize: fontSize.small, color: colors.ink }}>{c.address}</Text> : null}
-          <Text style={{ fontSize: fontSize.small, color: colors.ink }}>
-            Patients {c.patients} · Staff {c.staff}
-          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.accentTint }}>
+              <MaterialCommunityIcons name="account-group-outline" size={16} color={colors.accent} />
+              <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.accent }}>{c.patients} patients</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.tint }}>
+              <MaterialCommunityIcons name="badge-account-outline" size={16} color={colors.primary} />
+              <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.primary }}>{c.staff} staff</Text>
+            </View>
+          </View>
           {c.is_active ? (
             <Pill icon="check-circle-outline" text="Active" fg="#0F6B49" bg="#E6F2EC" />
           ) : (

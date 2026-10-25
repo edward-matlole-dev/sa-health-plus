@@ -1,10 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
 import { Text, View } from 'react-native'
 import { Field } from '../../../components/Field'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { parseSaId } from '../../../utils/saId'
 
@@ -37,7 +38,7 @@ async function describeError(error: unknown): Promise<string> {
   return 'Cannot connect. Check your internet connection and try again.'
 }
 
-type Done = { patientNumber: string; name: string }
+type Done = { patientNumber: string; initialPin: string; name: string }
 
 export default function Register() {
   const [firstName, setFirstName] = useState('')
@@ -84,7 +85,7 @@ export default function Register() {
       setServerError(await describeError(error))
       return
     }
-    setDone({ patientNumber: data.patient_number, name: `${firstName.trim()} ${lastName.trim()}` })
+    setDone({ patientNumber: data.patient_number, initialPin: data.initial_pin, name: `${firstName.trim()} ${lastName.trim()}` })
   }
 
   const reset = () => {
@@ -105,8 +106,10 @@ export default function Register() {
             alignItems: 'center',
             gap: spacing.md,
             padding: spacing.lg,
-            borderRadius: radius.xl,
-            backgroundColor: colors.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: staffColors.tealBorder,
+            backgroundColor: staffColors.surface,
             ...shadow.card,
           }}
         >
@@ -121,19 +124,25 @@ export default function Register() {
             style={{
               paddingVertical: spacing.md,
               paddingHorizontal: spacing.lg,
-              borderRadius: radius.lg,
-              backgroundColor: colors.tint,
+            borderRadius: radius.md,
+            backgroundColor: staffColors.tealTint,
             }}
           >
             <Text style={{ fontSize: 28, fontWeight: '700', color: colors.heading, letterSpacing: 1 }}>
               {done.patientNumber}
             </Text>
           </View>
-          <Text style={{ fontSize: fontSize.body, color: colors.muted, textAlign: 'center' }}>
-            Give this number to the patient. Their first PIN is the last six digits of their ID number.
-          </Text>
+          <View style={{ alignSelf: 'stretch', gap: spacing.xs, padding: spacing.md, borderRadius: radius.lg, backgroundColor: '#FAEEDA' }}>
+            <Text style={{ fontSize: fontSize.small, fontWeight: '700', color: '#854F0B' }}>New PIN — share privately</Text>
+            <Text accessibilityLabel={`New patient PIN ${done.initialPin}`} style={{ fontSize: 28, fontWeight: '700', color: colors.heading, letterSpacing: 2 }}>
+              {done.initialPin}
+            </Text>
+            <Text style={{ fontSize: fontSize.small, color: '#854F0B' }}>
+              Give the patient their number and this random PIN privately. Ask them to change their PIN in Settings after their first sign-in.
+            </Text>
+          </View>
           <View style={{ alignSelf: 'stretch' }}>
-            <PrimaryButton label="Register another patient" icon="account-plus-outline" onPress={reset} />
+            <PrimaryButton tone="staff" label="Register another patient" icon="account-plus-outline" onPress={reset} />
           </View>
         </View>
       </StaffScreen>
@@ -146,11 +155,27 @@ export default function Register() {
         style={{
           gap: spacing.md,
           padding: spacing.lg,
-          borderRadius: radius.xl,
-          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: staffColors.tealBorder,
+          backgroundColor: staffColors.surface,
           ...shadow.card,
         }}
       >
+        <LinearGradient
+          colors={[staffColors.tealTint, '#F8FCFC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.tealBorder }}
+        >
+          <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: staffColors.primary }}>
+            <MaterialCommunityIcons name="account-plus-outline" size={24} color={colors.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: colors.heading }}>New patient profile</Text>
+            <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Use the South African ID to verify the details below.</Text>
+          </View>
+        </LinearGradient>
         <Field
           label="First name"
           icon="account-outline"
@@ -192,7 +217,7 @@ export default function Register() {
               gap: spacing.sm,
               padding: spacing.md,
               borderRadius: radius.md,
-              backgroundColor: colors.tint,
+              backgroundColor: staffColors.tealTint,
             }}
           >
             <MaterialCommunityIcons name="check-circle-outline" size={22} color={colors.primary} />
@@ -230,7 +255,7 @@ export default function Register() {
           </View>
         ) : null}
 
-        <PrimaryButton label="Register patient" icon="arrow-right" onPress={submit} loading={busy} />
+        <PrimaryButton tone="staff" label="Register patient" icon="arrow-right" onPress={submit} loading={busy} />
       </View>
     </StaffScreen>
   )

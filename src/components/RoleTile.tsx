@@ -20,7 +20,7 @@ export function RoleTile({ label, description, icon, selected, onPress }: Props)
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       accessibilityLabel={`${label}. ${description}`}
-      style={{
+      style={({ pressed }) => ({
         flex: 1,
         minHeight: 120,
         alignItems: 'center',
@@ -31,7 +31,9 @@ export function RoleTile({ label, description, icon, selected, onPress }: Props)
         borderWidth: selected ? 2 : 1.5,
         borderColor: selected ? colors.primary : colors.inputBorder,
         backgroundColor: selected ? colors.tint : colors.surface,
-      }}
+        opacity: pressed ? 0.88 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
+      })}
     >
       {selected ? (
         <View
@@ -50,7 +52,9 @@ export function RoleTile({ label, description, icon, selected, onPress }: Props)
           <MaterialCommunityIcons name="check" size={16} color={colors.white} />
         </View>
       ) : null}
-      <MaterialCommunityIcons name={icon} size={32} color={colors.primary} />
+      <View style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? colors.white : colors.tint }}>
+        <MaterialCommunityIcons name={icon} size={26} color={colors.primary} />
+      </View>
       <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.ink }}>{label}</Text>
       <Text style={{ fontSize: fontSize.small, color: colors.muted, textAlign: 'center' }}>
         {description}

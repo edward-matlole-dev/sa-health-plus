@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../constants/theme'
 import { supabase } from '../lib/supabase'
 import { cleanTokens } from '../utils/patientSearch'
 import { Field } from './Field'
@@ -27,18 +27,15 @@ export function AddToQueue({ onAdded, onClose }: Props) {
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasSearchTerm = !selected && cleanTokens(query).join('').length >= 2
 
   // Search shortly after the person stops typing
   useEffect(() => {
     const tokens = cleanTokens(query)
-    if (selected || tokens.join('').length < 2) {
-      setResults([])
-      setSearching(false)
-      return
-    }
+    if (!hasSearchTerm) return
     let cancelled = false
-    setSearching(true)
     const handle = setTimeout(async () => {
+      setSearching(true)
       let q = supabase
         .from('patients')
         .select('id, first_name, last_name, patient_number')
@@ -62,7 +59,21 @@ export function AddToQueue({ onAdded, onClose }: Props) {
       cancelled = true
       clearTimeout(handle)
     }
-  }, [query, selected])
+  }, [query, hasSearchTerm])
+
+  const changeQuery = (value: string) => {
+    setQuery(value)
+    setResults([])
+    setSearching(cleanTokens(value).join('').length >= 2)
+    setError(null)
+  }
+
+  const choosePatient = (patient: Found) => {
+    setSelected(patient)
+    setResults([])
+    setSearching(false)
+    setError(null)
+  }
 
   const patientError = submitted && !selected ? 'Choose a patient first' : null
   const reasonError = submitted && !reason.trim() ? 'Enter or choose a reason for the visit' : null
@@ -101,8 +112,8 @@ export function AddToQueue({ onAdded, onClose }: Props) {
         paddingHorizontal: spacing.md,
         borderRadius: radius.pill,
         borderWidth: active ? 2 : 1.5,
-        borderColor: active ? colors.primary : colors.inputBorder,
-        backgroundColor: active ? colors.tint : colors.surface,
+        borderColor: active ? staffColors.primary : staffColors.border,
+        backgroundColor: active ? staffColors.tealTint : staffColors.surface,
       }}
     >
       <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.ink }}>{label}</Text>
@@ -114,8 +125,10 @@ export function AddToQueue({ onAdded, onClose }: Props) {
       style={{
         gap: spacing.md,
         padding: spacing.lg,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: staffColors.border,
+        backgroundColor: staffColors.surface,
         ...shadow.card,
       }}
     >
@@ -131,7 +144,9 @@ export function AddToQueue({ onAdded, onClose }: Props) {
             gap: spacing.sm,
             padding: spacing.md,
             borderRadius: radius.md,
-            backgroundColor: colors.tint,
+            borderWidth: 1,
+            borderColor: staffColors.tealBorder,
+            backgroundColor: staffColors.tealTint,
           }}
         >
           <MaterialCommunityIcons name="check-circle-outline" size={22} color={colors.primary} />
@@ -159,7 +174,7 @@ export function AddToQueue({ onAdded, onClose }: Props) {
             label="Find patient"
             icon="account-search-outline"
             value={query}
-            onChangeText={setQuery}
+            onChangeText={changeQuery}
             placeholder="Name or patient number"
             autoCapitalize="none"
             autoCorrect={false}
@@ -167,12 +182,12 @@ export function AddToQueue({ onAdded, onClose }: Props) {
           />
           {searching ? (
             <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Searching...</Text>
-          ) : results.length > 0 ? (
+          ) : hasSearchTerm && results.length > 0 ? (
             <View style={{ gap: spacing.sm }}>
               {results.map((p) => (
                 <Pressable
                   key={p.id}
-                  onPress={() => setSelected(p)}
+                  onPress={() => choosePatient(p)}
                   accessibilityRole="button"
                   accessibilityLabel={`Choose ${p.first_name} ${p.last_name}, ${p.patient_number}`}
                   style={{
@@ -181,7 +196,7 @@ export function AddToQueue({ onAdded, onClose }: Props) {
                     paddingHorizontal: spacing.md,
                     borderRadius: radius.md,
                     borderWidth: 1.5,
-                    borderColor: colors.border,
+                    borderColor: staffColors.border,
                   }}
                 >
                   <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.ink }}>
@@ -191,7 +206,7 @@ export function AddToQueue({ onAdded, onClose }: Props) {
                 </Pressable>
               ))}
             </View>
-          ) : cleanTokens(query).join('').length >= 2 && !error ? (
+          ) : hasSearchTerm && !error ? (
             <Text style={{ fontSize: fontSize.small, color: colors.muted }}>No patient found.</Text>
           ) : null}
         </>
@@ -239,7 +254,7 @@ export function AddToQueue({ onAdded, onClose }: Props) {
         </View>
       ) : null}
 
-      <PrimaryButton label="Add to queue" icon="arrow-right" onPress={submit} loading={busy} />
+      <PrimaryButton tone="staff" label="Add to queue" icon="arrow-right" onPress={submit} loading={busy} />
       <Pressable
         onPress={onClose}
         accessibilityRole="button"

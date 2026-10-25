@@ -3,6 +3,12 @@ import { parseSaId } from '../_shared/saId.ts'
 
 const PHONE = /^(\+27|0)[0-9]{9}$/
 
+function generatePin(): string {
+  const values = new Uint32Array(1)
+  crypto.getRandomValues(values)
+  return String(100000 + (values[0] % 900000))
+}
+
 // Accepts 0712345678 or +27712345678 (spaces and dashes allowed); stores +27 format
 function normalisePhone(raw: string): string | null {
   const cleaned = raw.replace(/[\s\-()]/g, '')
@@ -51,10 +57,12 @@ Deno.serve(async (req) => {
       return json({ error: 'Registration failed' }, 500)
     }
 
-    // The patient signs in with their patient number and a PIN (last six digits of the ID)
+    // Never derive a login credential from an ID number. The receptionist gives this
+    // randomly generated PIN directly to the patient at registration.
+    const initialPin = generatePin()
     const { data: created, error: authError } = await admin.auth.admin.createUser({
       email: `${String(patientNumber).toLowerCase()}@patients.example.com`,
-      password: idNumber.slice(-6),
+      password: initialPin,
       email_confirm: true,
     })
     if (authError || !created.user) {
@@ -100,7 +108,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Registration failed' }, 500)
     }
 
-    return json({ patient_id: patient.id, patient_number: patientNumber }, 201)
+    return json({ patient_id: patient.id, patient_number: patientNumber, initial_pin: initialPin }, 201)
   } catch (_e) {
     console.error('register-patient crashed')
     return json({ error: 'Something went wrong' }, 500)

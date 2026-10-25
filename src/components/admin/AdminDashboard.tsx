@@ -3,14 +3,16 @@ import { router, useFocusEffect } from 'expo-router'
 import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 import { formatDateTime } from '../../utils/dates'
 import { Chip } from '../Chip'
 import { Pill } from '../Pill'
 import { StaffScreen } from '../StaffScreen'
 import { ErrorBanner } from '../visit/ui'
+import { FeatureHero } from '../FeatureHero'
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
 
@@ -48,19 +50,24 @@ function StatTile({
   value: number
   onPress?: () => void
 }) {
+  const { isDesktop, isTablet } = useResponsiveLayout()
   const style = {
-    width: '48%',
+    width: isDesktop ? '31.8%' : isTablet ? '48%' : '100%',
     gap: 2,
     padding: spacing.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: staffColors.border,
+    backgroundColor: staffColors.surface,
     ...shadow.card,
   } as const
   const content = (
     <>
-      <MaterialCommunityIcons name={icon} size={26} color={colors.primary} />
-      <Text style={{ fontSize: fontSize.title, fontWeight: '700', color: colors.heading }}>{value}</Text>
-      <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.ink }}>{label}</Text>
+      <View style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, backgroundColor: staffColors.tealTint }}>
+        <MaterialCommunityIcons name={icon} size={23} color={staffColors.primary} />
+      </View>
+      <Text style={{ fontSize: fontSize.title + 2, fontWeight: '800', letterSpacing: -0.5, color: staffColors.primary }}>{value}</Text>
+      <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: staffColors.text }}>{label}</Text>
     </>
   )
   return onPress ? (
@@ -68,7 +75,7 @@ function StatTile({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}. Open.`}
-      style={style}
+      style={({ pressed }) => [style, { opacity: pressed ? 0.8 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}
     >
       {content}
     </Pressable>
@@ -129,26 +136,32 @@ export function AdminDashboard() {
 
       {stats ? (
         <>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
-            <View style={{ flex: 1 }}>
-              <Text accessibilityRole="header" style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.heading }}>
-                {scope}
-              </Text>
-              {at ? (
-                <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Updated {formatDateTime(at.toISOString())}</Text>
-              ) : null}
-            </View>
-            <Pressable
-              onPress={load}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Refresh the dashboard"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44, opacity: busy ? 0.5 : 1 }}
-            >
-              <MaterialCommunityIcons name="refresh" size={22} color={colors.primary} />
-              <Text style={{ fontSize: fontSize.small + 1, fontWeight: '700', color: colors.primary }}>Refresh</Text>
-            </Pressable>
-          </View>
+          <FeatureHero
+            eyebrow={isSuper ? 'Network overview' : 'Clinic overview'}
+            title={scope}
+            description={isSuper ? 'A high-level view of activity across your clinics, designed to help you find the next decision.' : 'A protected summary of service activity at your clinic.'}
+            icon={isSuper ? 'hospital-building' : 'shield-account-outline'}
+            tone="insight"
+            footer={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                {at ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: '#FFFFFF20' }}>
+                    <MaterialCommunityIcons name="clock-outline" size={16} color={colors.white} />
+                    <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.white }}>Updated {formatDateTime(at.toISOString())}</Text>
+                  </View>
+                ) : null}
+                <Pressable
+                  onPress={load}
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh the dashboard"
+                  style={({ pressed }) => ({ width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#FFFFFF25', opacity: busy || pressed ? 0.65 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] })}
+                >
+                  <MaterialCommunityIcons name="refresh" size={20} color={colors.white} />
+                </Pressable>
+              </View>
+            }
+          />
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md }}>
             {isSuper ? <StatTile icon="hospital-building" label="Clinics" value={stats.clinics} /> : null}
@@ -172,6 +185,8 @@ export function AdminDashboard() {
                 gap: spacing.md,
                 padding: spacing.lg,
                 borderRadius: radius.xl,
+                borderWidth: 1,
+                borderColor: colors.border,
                 backgroundColor: colors.surface,
                 ...shadow.card,
               }}

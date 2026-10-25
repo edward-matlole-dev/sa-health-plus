@@ -87,7 +87,7 @@ export function VisitSaved({ result, patient, onDone }: Props) {
       <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
         Flags are advisory only. They help to prioritise attention and are not a diagnosis.
       </Text>
-      <PrimaryButton label="Back to patient record" icon="arrow-left" onPress={onDone} />
+      <PrimaryButton tone="staff" label="Back to patient record" icon="arrow-left" onPress={onDone} />
     </>
   )
 }

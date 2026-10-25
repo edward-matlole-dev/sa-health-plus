@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router'
 import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { addDaysLocal, daysUntil, formatDate, formatDateTime, weekdayOf } from '../../utils/dates'
 import { ActionButton } from '../ActionButton'
@@ -11,7 +11,7 @@ import { Chip } from '../Chip'
 import { Field } from '../Field'
 import { Pill } from '../Pill'
 import { PrimaryButton } from '../PrimaryButton'
-import { ErrorBanner, InlineError } from '../visit/ui'
+import { ErrorBanner } from '../visit/ui'
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name']
 type Person = { first_name: string | null; last_name: string | null }
@@ -131,8 +131,10 @@ function OrderPanel({
       style={{
         gap: spacing.md,
         padding: spacing.lg,
-        borderRadius: radius.xl,
-        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: staffColors.border,
+        backgroundColor: staffColors.surface,
         ...shadow.card,
       }}
     >
@@ -198,7 +200,7 @@ function OrderPanel({
       </View>
 
       {error ? <ErrorBanner text={error} /> : null}
-      <PrimaryButton label="Order test" icon="check" onPress={submit} loading={busy} />
+      <PrimaryButton tone="staff" label="Order test" icon="check" onPress={submit} loading={busy} />
       <Pressable onPress={onClose} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.muted }}>Cancel</Text>
       </Pressable>
@@ -320,10 +322,12 @@ export function BloodTestsTab({ patientId }: { patientId: string }) {
     ({
       gap: spacing.sm,
       padding: spacing.md,
-      borderRadius: radius.lg,
-      backgroundColor: muted ? colors.background : colors.surface,
-      borderWidth: muted ? 1.5 : 0,
-      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: muted ? '#F8FAFB' : staffColors.surface,
+      borderWidth: 1,
+      borderLeftWidth: 4,
+      borderColor: staffColors.border,
+      borderLeftColor: muted ? staffColors.border : staffColors.info,
       ...(muted ? {} : shadow.card),
     }) as const
 
@@ -497,7 +501,7 @@ export function BloodTestsTab({ patientId }: { patientId: string }) {
           }}
         />
       ) : (
-        <PrimaryButton label="Order a blood test" icon="test-tube" onPress={() => setOrdering(true)} />
+        <PrimaryButton tone="staff" label="Order a blood test" icon="test-tube" onPress={() => setOrdering(true)} />
       )}
 
       {tests.length === 0 ? (

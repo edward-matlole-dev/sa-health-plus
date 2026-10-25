@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Pill } from '../../../components/Pill'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner } from '../../../components/visit/ui'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { formatDateTime } from '../../../utils/dates'
@@ -85,22 +85,33 @@ export default function Messages() {
             accessibilityLabel={`${r.first_name} ${r.last_name}, ${r.patient_number}. ${
               unread ? `${r.unread_count} unread${r.urgent_unread ? ', urgent' : ''}. ` : ''
             }${preview}`}
-            style={{
+            style={({ pressed }) => ({
               gap: spacing.xs,
               padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: colors.surface,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: r.urgent_unread ? '#F2C7C4' : unread ? staffColors.tealBorder : staffColors.border,
+              backgroundColor: r.urgent_unread ? '#FFF9F8' : unread ? '#F2FBFA' : staffColors.surface,
               borderLeftWidth: 5,
-              borderLeftColor: r.urgent_unread ? colors.error : unread ? colors.primary : colors.border,
+              borderLeftColor: r.urgent_unread ? staffColors.danger : unread ? staffColors.primary : staffColors.border,
+              opacity: pressed ? 0.82 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
               ...shadow.card,
-            }}
+            })}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: r.urgent_unread ? colors.errorTint : unread ? colors.tint : colors.accentTint }}>
+                  <Text style={{ fontSize: fontSize.small + 1, fontWeight: '800', color: r.urgent_unread ? colors.error : unread ? colors.primary : colors.accent }}>
+                    {`${r.first_name[0] ?? ''}${r.last_name[0] ?? ''}`.toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: fontSize.body + 1, fontWeight: unread ? '700' : '600', color: colors.ink }}>
                   {r.first_name} {r.last_name}
                 </Text>
                 <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{r.patient_number}</Text>
+                </View>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={22} color={colors.muted} />
             </View>

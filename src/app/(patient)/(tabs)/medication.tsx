@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Text, View } from 'react-native'
@@ -8,6 +9,7 @@ import { collectionInfo } from '../../../components/record/MedicationsTab'
 import { ErrorBanner } from '../../../components/visit/ui'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout'
 import { usePatient } from '../../../stores/patientStore'
 import { formatDate } from '../../../utils/dates'
 
@@ -26,6 +28,7 @@ type Med = {
 }
 
 export default function Medication() {
+  const { isTablet } = useResponsiveLayout()
   const patientId = usePatient((s) => s.patient?.id)
   const [meds, setMeds] = useState<Med[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -57,10 +60,15 @@ export default function Medication() {
     .filter((m) => m.status === 'stopped')
     .sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
 
-  const heading = (text: string) => (
-    <Text accessibilityRole="header" style={{ fontSize: fontSize.body + 1, fontWeight: '700', color: colors.heading }}>
-      {text}
-    </Text>
+  const heading = (text: string, count: number) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+      <Text accessibilityRole="header" style={{ flex: 1, fontSize: fontSize.body + 2, fontWeight: '800', letterSpacing: -0.15, color: colors.heading }}>
+        {text}
+      </Text>
+      <View style={{ minWidth: 28, minHeight: 28, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.tint }}>
+        <Text style={{ fontSize: fontSize.small, fontWeight: '800', color: colors.primary }}>{count}</Text>
+      </View>
+    </View>
   )
 
   const card = (m: Med) => {
@@ -70,23 +78,39 @@ export default function Medication() {
     const how = [m.dosage, m.frequency].filter(Boolean).join(' · ')
 
     return (
-      <View
+      <LinearGradient
         key={m.id}
+        colors={isActive ? ['#FFFFFF', '#F1FAF6'] : ['#FCFEFD', '#F3F8F5']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={{
+          width: isTablet ? '48.8%' : '100%',
           gap: spacing.sm,
-          padding: spacing.md,
+          padding: spacing.lg,
           borderRadius: radius.lg,
-          backgroundColor: isActive ? colors.surface : colors.background,
-          borderWidth: isActive ? 0 : 1.5,
-          borderColor: colors.border,
+          borderWidth: 1,
+          borderColor: isActive ? '#CDE8DC' : colors.border,
           ...(isActive ? shadow.card : {}),
         }}
       >
-        <Text style={{ fontSize: fontSize.heading - 2, fontWeight: '700', color: colors.ink }}>{m.name}</Text>
-        <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{form}</Text>
-        {how ? <Text style={{ fontSize: fontSize.body, color: colors.ink }}>{how}</Text> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+          <View style={{ width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: isActive ? colors.tint : '#E9EEEB' }}>
+            <MaterialCommunityIcons name={m.form === 'syrup' ? 'bottle-tonic-outline' : 'pill'} size={25} color={isActive ? colors.primary : colors.muted} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: fontSize.heading - 1, fontWeight: '800', color: colors.ink }}>{m.name}</Text>
+            <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{form}</Text>
+          </View>
+          {isActive ? <Pill icon="heart-pulse" text="Current" fg={colors.primary} bg={colors.tint} /> : null}
+        </View>
+        {how ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radius.md, backgroundColor: '#FFFFFFB8' }}>
+            <MaterialCommunityIcons name="clock-outline" size={18} color={colors.primary} />
+            <Text style={{ flex: 1, fontSize: fontSize.body, fontWeight: '600', color: colors.ink }}>{how}</Text>
+          </View>
+        ) : null}
         {isActive && m.supply_days ? (
-          <Text style={{ fontSize: fontSize.small, color: colors.muted }}>{m.supply_days} days of supply</Text>
+          <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.muted }}>{m.supply_days} days of supply</Text>
         ) : null}
         {info ? <Pill icon={info.icon} text={info.text} fg={info.fg} bg={info.bg} /> : null}
         {!isActive ? (
@@ -94,7 +118,7 @@ export default function Medication() {
             Stopped{m.end_date ? ` on ${formatDate(m.end_date)}` : ''}
           </Text>
         ) : null}
-      </View>
+      </LinearGradient>
     )
   }
 
@@ -103,6 +127,37 @@ export default function Medication() {
       {error ? <ErrorBanner text={error} /> : null}
       {!meds && !error ? (
         <Text style={{ fontSize: fontSize.body, color: colors.muted }}>Loading your medication...</Text>
+      ) : null}
+
+      {meds ? (
+        <LinearGradient
+          colors={[colors.heading, colors.primary, '#189A7C']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ overflow: 'hidden', gap: spacing.md, padding: spacing.lg, borderRadius: radius.xxl, ...shadow.floating }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+            <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: '#FFFFFF36', backgroundColor: '#FFFFFF1B' }}>
+              <MaterialCommunityIcons name="pill-multiple" size={28} color={colors.white} />
+            </View>
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text style={{ fontSize: fontSize.small - 2, fontWeight: '800', letterSpacing: 1.1, color: '#B9F6E0' }}>YOUR TREATMENT PLAN</Text>
+              <Text style={{ fontSize: fontSize.heading + 3, fontWeight: '800', letterSpacing: -0.3, color: colors.white }}>
+                {active.length === 1 ? '1 active medicine' : `${active.length} active medicines`}
+              </Text>
+              <Text style={{ fontSize: fontSize.small, lineHeight: 20, color: '#D8F4EA' }}>
+                Your current prescriptions and collection dates are all in one place.
+              </Text>
+            </View>
+          </View>
+          {active[0]?.next_collection ? (
+            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: '#FFFFFF20' }}>
+              <MaterialCommunityIcons name="calendar-clock-outline" size={17} color={colors.white} />
+              <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.white }}>Next collection {formatDate(active[0].next_collection)}</Text>
+            </View>
+          ) : null}
+          <MaterialCommunityIcons name="pill" size={156} color={colors.white} style={{ position: 'absolute', right: -25, bottom: -40, opacity: 0.1 }} />
+        </LinearGradient>
       ) : null}
 
       {meds && meds.length === 0 ? (
@@ -116,13 +171,17 @@ export default function Medication() {
 
       {active.length > 0 ? (
         <>
-          {heading('Your current medication')}
-          {active.map(card)}
+          {heading('Your current medication', active.length)}
+          <View style={{ flexDirection: isTablet ? 'row' : 'column', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.md }}>
+            {active.map(card)}
+          </View>
           <View
             style={{
               flexDirection: 'row',
               gap: spacing.sm,
               padding: spacing.md,
+              borderWidth: 1,
+              borderColor: '#F2D8AA',
               borderRadius: radius.md,
               backgroundColor: '#FAEEDA',
             }}
@@ -139,8 +198,10 @@ export default function Medication() {
 
       {stopped.length > 0 ? (
         <>
-          {heading('Medication you no longer take')}
-          {stopped.map(card)}
+          {heading('Medication you no longer take', stopped.length)}
+          <View style={{ flexDirection: isTablet ? 'row' : 'column', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.md }}>
+            {stopped.map(card)}
+          </View>
         </>
       ) : null}
     </PatientScreen>

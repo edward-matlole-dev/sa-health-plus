@@ -144,6 +144,8 @@ export default function Messages() {
           padding: spacing.md,
           borderRadius: radius.lg,
           backgroundColor: mine ? colors.tint : colors.surface,
+          borderWidth: 1,
+          borderColor: mine ? colors.tintStrong : colors.border,
           ...(mine ? {} : shadow.card),
         }}
       >
@@ -222,6 +224,8 @@ export default function Messages() {
           gap: spacing.md,
           padding: spacing.lg,
           borderRadius: radius.xl,
+          borderWidth: 1,
+          borderColor: colors.border,
           backgroundColor: colors.surface,
           ...shadow.card,
         }}

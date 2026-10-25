@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { StaffScreen } from '../../../components/StaffScreen'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { AddToQueue } from '../../../components/AddToQueue'
@@ -53,7 +54,7 @@ function ActionButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={{
+      style={({ pressed }) => ({
         minHeight: 44,
         paddingHorizontal: spacing.lg,
         justifyContent: 'center',
@@ -62,8 +63,9 @@ function ActionButton({
         borderWidth: 1.5,
         borderColor: primary ? colors.primary : colors.inputBorder,
         backgroundColor: primary ? colors.primary : colors.surface,
-        opacity: disabled ? 0.5 : 1,
-      }}
+        opacity: disabled ? 0.5 : pressed ? 0.82 : 1,
+        transform: [{ scale: pressed && !disabled ? 0.97 : 1 }],
+      })}
     >
       <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: primary ? colors.white : colors.ink }}>
         {label}
@@ -78,7 +80,7 @@ export default function Queue() {
 
   const [entries, setEntries] = useState<Entry[] | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
@@ -159,10 +161,12 @@ export default function Queue() {
         style={{
           gap: spacing.sm,
           padding: spacing.md,
-          borderRadius: radius.lg,
-          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          backgroundColor: staffColors.surface,
+          borderWidth: 1,
+          borderColor: entry.priority === 'urgent' ? '#F1C7C7' : staffColors.border,
           borderLeftWidth: 5,
-          borderLeftColor: entry.priority === 'urgent' ? colors.error : colors.primary,
+          borderLeftColor: entry.priority === 'urgent' ? staffColors.danger : consulting ? staffColors.info : staffColors.primary,
           ...shadow.card,
         }}
       >
@@ -271,6 +275,7 @@ export default function Queue() {
         />
       ) : (
         <PrimaryButton
+          tone="staff"
           label="Add patient to queue"
           icon="account-plus-outline"
           onPress={() => setAdding(true)}
@@ -299,9 +304,24 @@ export default function Queue() {
         <Text style={{ fontSize: fontSize.body, color: colors.muted }}>Loading the queue...</Text>
       ) : (
         <>
-          <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
-            {waiting.length} waiting · {inConsultation.length} in consultation
-          </Text>
+          <LinearGradient
+            colors={['#FFFFFF', '#EAF8F3']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: staffColors.tealBorder, backgroundColor: staffColors.surface, ...shadow.card }}
+          >
+            <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.primary }}>
+              <MaterialCommunityIcons name="account-clock-outline" size={23} color={colors.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: colors.heading }}>Today’s queue</Text>
+              <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Live clinic flow, updated as the team works.</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: fontSize.heading + 2, fontWeight: '800', color: colors.primary }}>{waiting.length}</Text>
+              <Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.muted }}>waiting</Text>
+            </View>
+          </LinearGradient>
 
           {inConsultation.length > 0 ? (
             <>

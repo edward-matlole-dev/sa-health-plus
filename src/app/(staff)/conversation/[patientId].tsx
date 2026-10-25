@@ -9,7 +9,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ActionButton } from '../../../components/ActionButton'
 import { ErrorBanner } from '../../../components/visit/ui'
-import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { useStaffUnread } from '../../../stores/staffUnreadStore'
@@ -165,8 +165,10 @@ export default function Conversation() {
           maxWidth: '88%',
           gap: spacing.xs,
           padding: spacing.md,
-          borderRadius: radius.lg,
-          backgroundColor: mine ? colors.tint : colors.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: mine ? staffColors.tealBorder : staffColors.border,
+          backgroundColor: mine ? staffColors.tealTint : staffColors.surface,
           ...(mine ? {} : shadow.card),
         }}
       >
@@ -212,8 +214,12 @@ export default function Conversation() {
           style={{
             gap: spacing.sm,
             padding: spacing.lg,
-            borderRadius: radius.xl,
-            backgroundColor: colors.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: staffColors.tealBorder,
+            borderLeftWidth: 5,
+            borderLeftColor: staffColors.primary,
+            backgroundColor: staffColors.surface,
             ...shadow.card,
           }}
         >
@@ -274,8 +280,10 @@ export default function Conversation() {
         style={{
           gap: spacing.md,
           padding: spacing.lg,
-          borderRadius: radius.xl,
-          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: staffColors.border,
+          backgroundColor: staffColors.surface,
           ...shadow.card,
         }}
       >
@@ -293,7 +301,7 @@ export default function Conversation() {
           error={bodyError}
         />
         {sendError ? <ErrorBanner text={sendError} /> : null}
-        <PrimaryButton label="Send reply" icon="send" onPress={send} loading={busy} />
+        <PrimaryButton tone="staff" label="Send reply" icon="send" onPress={send} loading={busy} />
       </View>
     </StaffScreen>
   )

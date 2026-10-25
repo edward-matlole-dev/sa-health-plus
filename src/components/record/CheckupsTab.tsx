@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { categoryLabel, indicatorLabel } from '../../constants/categories'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { FLAG_LABELS, VITAL_NAMES, type VitalStatus } from '../../constants/vitals'
 import { supabase } from '../../lib/supabase'
 import { formatDateTime } from '../../utils/dates'
@@ -122,8 +122,12 @@ export function CheckupsTab({ patientId }: { patientId: string }) {
             style={{
               gap: spacing.sm,
               padding: spacing.md,
-              borderRadius: radius.lg,
-              backgroundColor: colors.surface,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderLeftWidth: 4,
+              borderColor: v.has_flagged_vitals ? '#F3D5B6' : staffColors.border,
+              borderLeftColor: v.has_flagged_vitals ? staffColors.warning : staffColors.primary,
+              backgroundColor: staffColors.surface,
               ...shadow.card,
             }}
           >

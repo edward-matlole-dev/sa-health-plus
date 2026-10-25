@@ -16,14 +16,17 @@ export function Pill({ icon, text, fg, bg }: { icon: IconName; text: string; fg:
         alignItems: 'center',
         gap: spacing.xs,
         alignSelf: 'flex-start',
+        maxWidth: '100%',
         paddingVertical: spacing.xs,
         paddingHorizontal: spacing.sm,
         borderRadius: radius.pill,
+        borderWidth: 1,
+        borderColor: `${fg}1F`,
         backgroundColor: bg,
       }}
     >
       <MaterialCommunityIcons name={icon} size={18} color={fg} />
-      <Text style={{ fontSize: fontSize.small, fontWeight: '700', color: fg }}>{text}</Text>
+      <Text style={{ flexShrink: 1, fontSize: fontSize.small, fontWeight: '700', color: fg }}>{text}</Text>
     </View>
   )
 }

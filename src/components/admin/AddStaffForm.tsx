@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
-import { colors, fontSize, radius, shadow, spacing } from '../../constants/theme'
+import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../constants/theme'
 import { supabase } from '../../lib/supabase'
 import { generatePassword } from '../../utils/password'
 import { ActionButton } from '../ActionButton'
@@ -20,6 +20,7 @@ const ROLES: { key: Role; label: string }[] = [
 ]
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/
 
 async function describeError(error: unknown): Promise<string> {
   const e = error as { context?: { json?: () => Promise<unknown> } } | null
@@ -61,7 +62,9 @@ export function AddStaffForm({ isSuper, onClose, onChanged }: Props) {
     first: !firstName.trim() ? 'Enter the first name' : null,
     last: !lastName.trim() ? 'Enter the last name' : null,
     email: !EMAIL.test(email.trim()) ? 'Enter a valid email address' : null,
-    password: password.length < 8 ? 'The password must be at least 8 characters' : null,
+    password: !STRONG_PASSWORD.test(password)
+      ? 'Use 12 or more characters with uppercase, lowercase, a number and a symbol'
+      : null,
     clinic: isSuper && !clinicId ? 'Choose the clinic' : null,
   }
   const shown = (k: keyof typeof errors) => (submitted ? errors[k] : null)
@@ -113,8 +116,10 @@ export function AddStaffForm({ isSuper, onClose, onChanged }: Props) {
   const boxStyle = {
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: staffColors.border,
+    backgroundColor: staffColors.surface,
     ...shadow.card,
   } as const
 
@@ -129,7 +134,7 @@ export function AddStaffForm({ isSuper, onClose, onChanged }: Props) {
         <Text selectable style={{ fontSize: fontSize.small, color: colors.muted }}>
           {created.email}
         </Text>
-        <View style={{ padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tint }}>
+        <View style={{ padding: spacing.md, borderRadius: radius.md, backgroundColor: staffColors.tealTint }}>
           <Text style={{ fontSize: fontSize.small, color: colors.muted, textAlign: 'center' }}>Password</Text>
           <Text selectable style={{ fontSize: 26, fontWeight: '700', color: colors.heading, letterSpacing: 1 }}>
             {created.password}
@@ -217,7 +222,11 @@ export function AddStaffForm({ isSuper, onClose, onChanged }: Props) {
           error={shown('password')}
         />
         <Pressable
-          onPress={() => setPassword(generatePassword())}
+          onPress={() => {
+            generatePassword()
+              .then(setPassword)
+              .catch(() => setError('The password generator is unavailable in this app build. Please enter a strong password manually.'))
+          }}
           accessibilityRole="button"
           accessibilityLabel="Generate a random password"
           style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44 }}
@@ -228,7 +237,7 @@ export function AddStaffForm({ isSuper, onClose, onChanged }: Props) {
       </View>
 
       {error ? <ErrorBanner text={error} /> : null}
-      <PrimaryButton label="Create account" icon="check" onPress={submit} loading={busy} />
+      <PrimaryButton tone="staff" label="Create account" icon="check" onPress={submit} loading={busy} />
       <Pressable onPress={onClose} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.muted }}>Cancel</Text>
       </Pressable>
