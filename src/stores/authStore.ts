@@ -180,25 +180,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().busy) return false
     set({ busy: true, error: null })
 
-    // Supabase JS 2.102+ verifies current_password when the project has that
-    // security control enabled. Supplying it here also means this client is
-    // ready for that production setting without a client release.
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-      current_password: currentPassword,
-    })
+    // Prove the person knows the current PIN or password by signing in with it again.
+    // This does not depend on any project setting.
+    const email = get().session?.user.email
+    if (!email) {
+      set({ busy: false, error: 'Please sign in again, then try changing your security code.' })
+      return false
+    }
+    const check = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+    if (check.error) {
+      set({
+        busy: false,
+        error: check.error.code === 'invalid_credentials'
+          ? 'The current PIN or password is not correct.'
+          : describeError(check.error.message),
+      })
+      return false
+    }
 
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) {
-      const message = error.code === 'reauthentication_needed'
-        ? 'Please sign in again, then try changing your security code.'
-        : error.code === 'same_password'
-          ? 'Choose a different PIN or password.'
-          : error.code === 'weak_password'
-            ? 'Your new PIN or password does not meet the security requirements.'
-            : describeError(error.message)
+      const message = error.code === 'same_password'
+        ? 'Choose a different PIN or password.'
+        : error.code === 'weak_password'
+          ? 'Your new PIN or password does not meet the security requirements.'
+          : describeError(error.message)
       set({ busy: false, error: message })
       return false
     }
+
+    // End every other session of this account, in case a phone was lost or shared.
+    await supabase.auth.signOut({ scope: 'others' })
 
     set({ busy: false })
     return true
