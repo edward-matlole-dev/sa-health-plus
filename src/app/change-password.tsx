@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
+import { FeatureHero } from '../components/FeatureHero'
 import { Field } from '../components/Field'
 import { PatientScreen } from '../components/PatientScreen'
 import { PrimaryButton } from '../components/PrimaryButton'
-import { FeatureHero } from '../components/FeatureHero'
 import { StaffScreen } from '../components/StaffScreen'
 import { ErrorBanner } from '../components/visit/ui'
 import { colors, fontSize, radius, shadow, spacing } from '../constants/theme'
@@ -14,6 +14,12 @@ import { useLocale } from '../stores/localeStore'
 
 function isStrongPassword(value: string) {
   return value.length >= 12 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
+}
+
+function isWeakPin(value: string) {
+  if (/^(\d)\1{5}$/.test(value)) return true // 000000, 111111, ...
+  const steps = value.split('').map((d, i, a) => (i === 0 ? 0 : Number(d) - Number(a[i - 1]))).slice(1)
+  return steps.every((s) => s === 1) || steps.every((s) => s === -1) // 123456, 654321
 }
 
 export default function ChangePassword() {
@@ -36,7 +42,7 @@ export default function ChangePassword() {
   const currentError = submitted && !current ? t('password.currentRequired') : null
   const nextError = submitted && !next
     ? (patient ? t('password.patientRule') : t('password.staffRule'))
-    : submitted && patient && !/^\d{6}$/.test(next)
+    : submitted && patient && (!/^\d{6}$/.test(next) || isWeakPin(next))
       ? t('password.patientRule')
       : submitted && !patient && !isStrongPassword(next)
         ? t('password.staffRule')
