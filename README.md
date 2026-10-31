@@ -159,7 +159,6 @@ Start `npx expo start` once before the type check if you add a new route: Expo g
    ```bash
    npx supabase functions deploy   # register-patient, register-staff, reset-patient-pin, send-sms
    ```
-   `whoami` is a small test function. Delete it before a release with `npx supabase functions delete whoami`.
 5. **SMS secrets** (only if you want SMS). Set them as server secrets, never in a file:
    ```bash
    npx supabase secrets set TWILIO_ACCOUNT_SID=... TWILIO_AUTH_TOKEN=... TWILIO_MESSAGING_SERVICE_SID=...
@@ -193,7 +192,6 @@ node --env-file=.env scripts/<script>.mjs
 
 | Script | What it checks |
 |---|---|
-| `whoami-test.mjs` | The first Edge Function, and refusing a call with no sign-in |
 | `register-staff-test.mjs`, `register-staff-refusal-test.mjs` | Creating staff, and refusing a nurse |
 | `register-patient-test.mjs` | Registration, ID validation, duplicates, who can see whom |
 | `log-visit-test.mjs`, `log-visit-test-2.mjs` | Saving a visit, ticks, medication, bad input, and rollback |
