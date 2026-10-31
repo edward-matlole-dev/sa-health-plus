@@ -28,24 +28,34 @@ A mobile-first digital health records platform for South African public primary 
 
 ## Architecture
 
-```
- One Expo / React Native app (TypeScript): Android, iOS and web
-   |-- Patient area
-   '-- Staff area (by role)
-              |
-              v
- Supabase (Central EU, Frankfurt)
-   |-- Auth (JWT sessions)
-   |-- Data API with Row Level Security
-   |-- Realtime
-   |-- Edge Functions: register-patient, register-staff,
-   |                   reset-patient-pin, send-sms
-   '-- PostgreSQL: 15 tables, functions, triggers
-              |
-              v
- Twilio SMS (called by send-sms)
-```
 
+```mermaid
+flowchart LR
+  subgraph App["One Expo / React Native app (TypeScript): Android, iOS and web"]
+    P["Patient area"]
+    S["Staff area (by role)"]
+  end
+  subgraph SB["Supabase (Central EU, Frankfurt)"]
+    A["Auth (JWT sessions)"]
+    API["Data API with Row Level Security"]
+    RT["Realtime"]
+    EF["Edge Functions<br/>register-patient, register-staff,<br/>reset-patient-pin, send-sms"]
+    DB[("PostgreSQL<br/>15 tables, functions, triggers")]
+  end
+  SMS["Twilio SMS"]
+  P --> A
+  P --> API
+  P --> RT
+  S --> A
+  S --> API
+  S --> RT
+  S --> EF
+  API --> DB
+  RT --> DB
+  A --> DB
+  EF --> DB
+  EF --> SMS
+```
 The rules that matter (who may see what, vital sign flags, who recorded each entry, final results, message limits) live in the database, so a modified app cannot bypass them. Anything that needs a secret key (creating accounts, resetting PINs, sending SMS) runs in an Edge Function that checks who is calling.
 
 ## Tech stack
