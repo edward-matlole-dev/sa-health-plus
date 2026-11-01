@@ -8,8 +8,8 @@ import { FeatureHero } from '../../../components/FeatureHero'
 import { StaffScreen } from '../../../components/StaffScreen'
 import { ErrorBanner } from '../../../components/visit/ui'
 import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
-import { supabase } from '../../../lib/supabase'
 import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout'
+import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
 import { formatDateTime } from '../../../utils/dates'
 
@@ -152,7 +152,7 @@ export default function AnalyticsScreen() {
             ))}
           </View>
 
-          {report.sms_failed > 0 ? <ErrorBanner text={`${report.sms_failed} SMS delivery${report.sms_failed === 1 ? '' : 'ies'} failed in this period.`} /> : null}
+          {report.sms_failed > 0 ? <ErrorBanner text={`${report.sms_failed} SMS ${report.sms_failed === 1 ? 'delivery' : 'deliveries'} failed in this period.`} /> : null}
         </>
       ) : null}
     </StaffScreen>

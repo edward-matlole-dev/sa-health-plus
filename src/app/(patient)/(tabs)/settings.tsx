@@ -117,11 +117,10 @@ export default function Settings() {
           />
         </SettingRow>
         <View style={{ height: 1, backgroundColor: colors.border }} />
-        <SettingRow icon="bell-outline" title={t('settings.push')} detail={t('settings.pushDetail')}>
+        <SettingRow icon="bell-outline" title={t('settings.push')} detail={t('settings.pushSoon')}>
           <Switch
-            value={patient?.push_enabled ?? false}
-            onValueChange={(value) => saveNotifications(patient?.sms_enabled ?? false, value)}
-            disabled={!patient || savingNotifications}
+            value={false}
+            disabled
             accessibilityLabel={t('settings.push')}
             trackColor={{ true: colors.primary, false: colors.inputBorder }}
             thumbColor={colors.white}

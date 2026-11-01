@@ -26,6 +26,7 @@ const translations = {
       smsDetail: 'Receive appointment and clinic reminders by SMS.',
       push: 'App notifications',
       pushDetail: 'Receive reminders when notifications are available on your device.',
+      pushSoon: 'Coming soon. App notifications are not available yet.',
       language: 'Language',
       languageDetail: 'Choose the language used in key parts of the app.',
       saving: 'Saving your preferences…',
