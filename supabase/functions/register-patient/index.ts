@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
         phone,
         gender: id.gender,
         date_of_birth: id.dateOfBirth,
+        sms_enabled: body.sms_consent === true,
       })
       .select('id')
       .single()

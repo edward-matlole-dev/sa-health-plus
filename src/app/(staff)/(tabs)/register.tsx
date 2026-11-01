@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
-import { Text, View } from 'react-native'
+import { Switch, Text, View } from 'react-native'
 import { Field } from '../../../components/Field'
 import { PrimaryButton } from '../../../components/PrimaryButton'
 import { StaffScreen } from '../../../components/StaffScreen'
@@ -45,6 +45,7 @@ export default function Register() {
   const [lastName, setLastName] = useState('')
   const [idNumber, setIdNumber] = useState('')
   const [phone, setPhone] = useState('')
+  const [smsConsent, setSmsConsent] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -77,6 +78,7 @@ export default function Register() {
         last_name: lastName.trim(),
         id_number: idNumber,
         phone,
+        sms_consent: smsConsent,
       },
     })
     setBusy(false)
@@ -93,6 +95,7 @@ export default function Register() {
     setLastName('')
     setIdNumber('')
     setPhone('')
+    setSmsConsent(false)
     setSubmitted(false)
     setServerError(null)
     setDone(null)
@@ -236,6 +239,32 @@ export default function Register() {
           maxLength={16}
           error={phoneError}
         />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
+            padding: spacing.md,
+            borderRadius: radius.md,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: fontSize.body, fontWeight: '700', color: colors.ink }}>SMS reminders</Text>
+            <Text style={{ fontSize: fontSize.small, color: colors.muted }}>
+              Switch on only if the patient agrees to receive appointment and medication reminders by SMS. She can change this later in Settings.
+            </Text>
+          </View>
+          <Switch
+            value={smsConsent}
+            onValueChange={setSmsConsent}
+            accessibilityLabel="The patient agrees to receive SMS reminders"
+            trackColor={{ true: colors.primary, false: colors.inputBorder }}
+            thumbColor={colors.white}
+          />
+        </View>
 
         {serverError ? (
           <View
@@ -244,7 +273,7 @@ export default function Register() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: spacing.sm,
+              gap: spacing.md,
               padding: spacing.md,
               borderRadius: radius.md,
               backgroundColor: colors.errorTint,
