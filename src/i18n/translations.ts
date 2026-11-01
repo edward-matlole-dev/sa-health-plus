@@ -43,6 +43,7 @@ const translations = {
       updated: 'Your security code has been updated.',
       mismatch: 'The new values do not match.',
       patientRule: 'Your new PIN must be exactly 6 digits.',
+      weakPin: 'Choose a PIN that is harder to guess. Avoid 123456 or 111111.',
       staffRule: 'Use 12 or more characters with uppercase, lowercase, a number and a symbol.',
       currentRequired: 'Enter your current PIN or password.',
       same: 'Choose a different PIN or password.',

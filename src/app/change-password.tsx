@@ -39,22 +39,32 @@ export default function ChangePassword() {
   const [complete, setComplete] = useState(false)
   const [visible, setVisible] = useState(false)
 
-  const currentError = submitted && !current ? t('password.currentRequired') : null
-  const nextError = submitted && !next
+  // The checks always run, on the values in the boxes right now.
+  const currentIssue = !current ? t('password.currentRequired') : null
+  const nextIssue = !next
     ? (patient ? t('password.patientRule') : t('password.staffRule'))
-    : submitted && patient && (!/^\d{6}$/.test(next) || isWeakPin(next))
+    : patient && !/^\d{6}$/.test(next)
       ? t('password.patientRule')
-      : submitted && !patient && !isStrongPassword(next)
-        ? t('password.staffRule')
-        : submitted && current === next
-          ? t('password.same')
-          : null
-  const confirmError = submitted && next !== confirm ? t('password.mismatch') : null
+      : patient && isWeakPin(next)
+        ? t('password.weakPin')
+        : !patient && !isStrongPassword(next)
+          ? t('password.staffRule')
+          : current === next
+            ? t('password.same')
+            : null
+  const confirmIssue = next !== confirm ? t('password.mismatch') : null
+  const allGood = !currentIssue && !nextIssue && !confirmIssue
+
+  // The messages are shown only after the first tap.
+  const currentError = submitted ? currentIssue : null
+  const nextError = submitted ? nextIssue : null
+  const confirmError = submitted ? confirmIssue : null
 
   const submit = async () => {
     setSubmitted(true)
     clearError()
-    if (currentError || nextError || confirmError || !current || !next || !confirm) return
+    setComplete(false)
+    if (!allGood) return // nothing is sent to the server when a check fails
     const ok = await changePassword(current, next)
     if (ok) {
       setCurrent('')
