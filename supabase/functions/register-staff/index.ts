@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
       clinic_id: clinicId,
       first_name: firstName,
       last_name: lastName,
+      must_change_password: true,
     })
     if (profileError) {
       await admin.auth.admin.deleteUser(created.user.id) // undo, so nothing is left half-made

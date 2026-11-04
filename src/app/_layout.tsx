@@ -11,6 +11,7 @@ export default function RootLayout() {
   const initialising = useAuthStore((s) => s.initialising)
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
+  const mustChange = useAuthStore((s) => s.mustChange)
   const initialise = useAuthStore((s) => s.initialise)
   const loadLocale = useLocale((s) => s.load)
 
@@ -28,8 +29,8 @@ export default function RootLayout() {
 
   if (initialising) return null
 
-  const isPatient = !!session && role === 'patient'
-  const isStaff = !!session && !!role && role !== 'patient'
+  const isPatient = !!session && role === 'patient' && !mustChange
+  const isStaff = !!session && !!role && role !== 'patient' && !mustChange
 
   return (
     <LocaleProvider direction="ltr">

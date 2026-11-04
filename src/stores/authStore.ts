@@ -11,7 +11,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const NETWORK_MESSAGE = 'Cannot connect. Check your internet connection and try again.'
 
 type RoleResult =
-  | { status: 'ok'; role: Role }
+  | { status: 'ok'; role: Role; mustChange: boolean }
   | { status: 'inactive' } // no profile, or the account was deactivated
   | { status: 'error' } // could not reach the database
 
@@ -19,12 +19,12 @@ type RoleResult =
 async function loadRole(userId: string): Promise<RoleResult> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, is_active')
+    .select('role, is_active, must_change_password')
     .eq('id', userId)
     .maybeSingle()
   if (error) return { status: 'error' }
   if (!data || !data.is_active) return { status: 'inactive' }
-  return { status: 'ok', role: data.role as Role }
+  return { status: 'ok', role: data.role as Role, mustChange: !!data.must_change_password }
 }
 
 function describeError(message: string): string {
@@ -34,7 +34,7 @@ function describeError(message: string): string {
 }
 
 type Attempt =
-  | { ok: true; session: Session; role: Role }
+  | { ok: true; session: Session; role: Role; mustChange: boolean }
   | { ok: false; error: string }
 
 async function attempt(
@@ -66,7 +66,7 @@ async function attempt(
     await supabase.auth.signOut()
     return { ok: false, error: wrongArea }
   }
-  return { ok: true, session: data.session, role: result.role }
+  return { ok: true, session: data.session, role: result.role, mustChange: result.mustChange }
 }
 
 type AuthState = {
@@ -74,6 +74,7 @@ type AuthState = {
   busy: boolean
   session: Session | null
   role: Role | null
+  mustChange: boolean // a new or reset account must choose its own PIN or password first
   error: string | null
   initialise: () => Promise<void>
   signInPatient: (patientNumber: string, pin: string) => Promise<boolean>
@@ -88,17 +89,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   busy: false,
   session: null,
   role: null,
+  mustChange: false,
   error: null,
 
   // Runs once when the app starts: restores a saved session, even when offline
   initialise: async () => {
     const { data } = await supabase.auth.getSession()
     let role: Role | null = null
+    let mustChange = false
 
     if (data.session) {
       const result = await loadRole(data.session.user.id)
       if (result.status === 'ok') {
         role = result.role
+        mustChange = result.mustChange
         await AsyncStorage.setItem(ROLE_KEY, result.role)
       } else if (result.status === 'error') {
         // Offline: keep the user signed in using the role we remembered
@@ -109,11 +113,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
 
-    set({ session: role ? data.session : null, role, initialising: false })
+    set({ session: role ? data.session : null, role, mustChange, initialising: false })
 
     // Keep this listener free of database calls
     supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') set({ session: null, role: null })
+      if (event === 'SIGNED_OUT') set({ session: null, role: null, mustChange: false })
       else if (event === 'TOKEN_REFRESHED' && session) set({ session })
     })
   },
@@ -143,7 +147,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false
     }
     await AsyncStorage.setItem(ROLE_KEY, result.role)
-    set({ busy: false, session: result.session, role: result.role })
+    set({ busy: false, session: result.session, role: result.role, mustChange: result.mustChange })
     return true
   },
 
@@ -172,7 +176,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false
     }
     await AsyncStorage.setItem(ROLE_KEY, result.role)
-    set({ busy: false, session: result.session, role: result.role })
+    set({ busy: false, session: result.session, role: result.role, mustChange: result.mustChange })
     return true
   },
 
@@ -212,6 +216,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // End every other session of this account, in case a phone was lost or shared.
     await supabase.auth.signOut({ scope: 'others' })
 
+    // The database clears the "must change" flag when the password really changes. Read it again.
+    const userId = get().session?.user.id
+    if (userId) {
+      const fresh = await loadRole(userId)
+      if (fresh.status === 'ok') set({ mustChange: fresh.mustChange })
+    }
+
     set({ busy: false })
     return true
   },
@@ -219,7 +230,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     await supabase.auth.signOut()
     await AsyncStorage.removeItem(ROLE_KEY)
-    set({ session: null, role: null, error: null })
+    set({ session: null, role: null, mustChange: false, error: null })
   },
 
   clearError: () => set({ error: null }),

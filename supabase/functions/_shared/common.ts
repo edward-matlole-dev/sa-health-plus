@@ -33,10 +33,11 @@ export async function getCaller(req: Request): Promise<Caller | null> {
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('role, clinic_id, is_active')
+    .select('role, clinic_id, is_active, must_change_password')
     .eq('id', user.id)
     .maybeSingle()
-  if (!profile || !profile.is_active) return null
+  // A new or reset account must first choose its own PIN or password.
+  if (!profile || !profile.is_active || profile.must_change_password) return null
 
   return { id: user.id, role: profile.role, clinic_id: profile.clinic_id }
 }

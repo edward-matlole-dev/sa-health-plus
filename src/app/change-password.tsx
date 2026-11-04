@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { FeatureHero } from '../components/FeatureHero'
@@ -28,6 +29,8 @@ export default function ChangePassword() {
   const busy = useAuthStore((s) => s.busy)
   const authError = useAuthStore((s) => s.error)
   const clearError = useAuthStore((s) => s.clearError)
+  const mustChange = useAuthStore((s) => s.mustChange)
+  const signOut = useAuthStore((s) => s.signOut)
   const language = useLocale((s) => s.language)
   const t = (key: string) => translate(language, key)
   const patient = role === 'patient'
@@ -65,13 +68,18 @@ export default function ChangePassword() {
     clearError()
     setComplete(false)
     if (!allGood) return // nothing is sent to the server when a check fails
+    const forced = mustChange // remember whether this was the required first change
     const ok = await changePassword(current, next)
     if (ok) {
       setCurrent('')
       setNext('')
       setConfirm('')
-      setComplete(true)
       setSubmitted(false)
+      if (forced) {
+        router.replace('/') // the account is now free to use: go to the home screen of the role
+        return
+      }
+      setComplete(true)
     }
   }
 
@@ -103,6 +111,12 @@ export default function ChangePassword() {
           }
         />
 
+        {mustChange ? (
+          <View accessibilityRole="alert" style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: '#FAEEDA' }}>
+            <MaterialCommunityIcons name="alert-outline" size={22} color="#854F0B" />
+            <Text style={{ flex: 1, fontSize: fontSize.body, fontWeight: '700', color: '#854F0B' }}>{t('password.forced')}</Text>
+          </View>
+        ) : null}
         {complete ? (
           <View accessibilityRole="alert" style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.tint }}>
             <MaterialCommunityIcons name="check-circle-outline" size={22} color={colors.primary} />
@@ -154,12 +168,18 @@ export default function ChangePassword() {
           />
           <PrimaryButton label={t('password.update')} icon="shield-check-outline" onPress={submit} loading={busy} />
         </View>
+
+        {mustChange ? (
+          <Pressable onPress={signOut} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: fontSize.body, fontWeight: '600', color: colors.muted }}>{t('settings.signOut')}</Text>
+          </Pressable>
+        ) : null}
     </View>
   )
 
   return patient ? (
-    <PatientScreen title={t('password.title')} showBack>{content}</PatientScreen>
+    <PatientScreen title={t('password.title')} showBack={!mustChange}>{content}</PatientScreen>
   ) : (
-    <StaffScreen title={t('password.title')} showBack>{content}</StaffScreen>
+    <StaffScreen title={t('password.title')} showBack={!mustChange}>{content}</StaffScreen>
   )
 }

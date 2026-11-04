@@ -37,6 +37,14 @@ Deno.serve(async (req) => {
       return json({ error: 'Could not reset the PIN' }, 500)
     }
 
+    // The patient must now choose a PIN of her own. A failure here does not undo the reset,
+    // so staff can still hand over the new PIN. It is logged for follow-up.
+    const { error: flagError } = await admin
+      .from('profiles')
+      .update({ must_change_password: true })
+      .eq('id', patient.user_id)
+    if (flagError) console.error('flag failed', flagError.code)
+
     const { error: auditError } = await admin.from('patient_security_events').insert({
       patient_id: patient.id,
       performed_by: caller.id,

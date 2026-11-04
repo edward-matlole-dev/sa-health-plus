@@ -141,7 +141,7 @@ export default function Register() {
               {done.initialPin}
             </Text>
             <Text style={{ fontSize: fontSize.small, color: '#854F0B' }}>
-              Give the patient their number and this random PIN privately. Ask them to change their PIN in Settings after their first sign-in.
+              She will be asked to choose her own PIN the first time she signs in.
             </Text>
           </View>
           <View style={{ alignSelf: 'stretch' }}>
