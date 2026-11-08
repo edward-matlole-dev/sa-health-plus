@@ -27,6 +27,16 @@ const ROLE_LABEL: Record<string, string> = {
   clinic_admin: 'Clinic admin',
 }
 
+async function describeError(error: unknown): Promise<string> {
+  const e = error as { context?: { json?: () => Promise<unknown> } } | null
+  if (typeof e?.context?.json === 'function') {
+    const body = (await e.context.json().catch(() => null)) as { error?: unknown } | null
+    if (body && typeof body.error === 'string') return body.error
+    return 'Could not reset the password. Please try again.'
+  }
+  return 'Cannot connect. Check your internet connection and try again.'
+}
+
 export default function Team() {
   const role = useAuthStore((s) => s.role)
   const me = useAuthStore((s) => s.session?.user.id)
@@ -38,6 +48,8 @@ export default function Team() {
   const [adding, setAdding] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<string | null>(null)
+  const [resetConfirm, setResetConfirm] = useState<string | null>(null)
+  const [result, setResult] = useState<{ name: string; password: string } | null>(null)
 
   const load = useCallback(async () => {
     const { data, error: loadError } = await supabase
@@ -62,6 +74,7 @@ export default function Team() {
   const setActive = async (m: Member, active: boolean) => {
     setBusyId(m.id)
     setConfirm(null)
+    setResetConfirm(null)
     setMessage(null)
     const { error: rpcError } = await supabase.rpc('set_staff_active', { p_user: m.id, p_active: active })
     setBusyId(null)
@@ -71,6 +84,27 @@ export default function Team() {
       else setMessage('Could not change the account. Please try again.')
     }
     load()
+  }
+
+  const resetPassword = async (m: Member, name: string) => {
+    setBusyId(m.id)
+    setResetConfirm(null)
+    setMessage(null)
+    setResult(null)
+    const { data, error: invokeError } = await supabase.functions.invoke('reset-staff-password', {
+      body: { staff_id: m.id },
+    })
+    setBusyId(null)
+    if (invokeError) {
+      setMessage(await describeError(invokeError))
+      return
+    }
+    const password = String((data as { new_password?: string } | null)?.new_password ?? '')
+    if (!password) {
+      setMessage('Could not reset the password. Please try again.')
+      return
+    }
+    setResult({ name, password })
   }
 
   if (role !== 'clinic_admin' && role !== 'super_admin') {
@@ -96,6 +130,38 @@ export default function Team() {
       ) : (
         <PrimaryButton tone="staff" label="Add a staff member" icon="account-plus-outline" onPress={() => setAdding(true)} />
       )}
+
+      {result ? (
+        <View
+          style={{
+            alignItems: 'center',
+            gap: spacing.md,
+            padding: spacing.lg,
+            borderRadius: radius.md,
+            backgroundColor: staffColors.surface,
+            borderWidth: 1,
+            borderColor: staffColors.tealBorder,
+            ...shadow.card,
+          }}
+        >
+          <MaterialCommunityIcons name="check-circle-outline" size={48} color={staffColors.primary} />
+          <Text style={{ fontSize: fontSize.heading, fontWeight: '700', color: colors.heading }}>Password reset</Text>
+          <Text style={{ fontSize: fontSize.body, color: colors.ink }}>{result.name}</Text>
+          <View style={{ padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tint }}>
+            <Text style={{ fontSize: fontSize.small, color: colors.muted, textAlign: 'center' }}>New password</Text>
+            <Text selectable style={{ fontSize: 24, fontWeight: '700', color: colors.heading, letterSpacing: 1 }}>
+              {result.password}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: '#FAEEDA' }}>
+            <MaterialCommunityIcons name="alert-outline" size={22} color="#854F0B" />
+            <Text style={{ flex: 1, fontSize: fontSize.small, fontWeight: '600', color: '#854F0B' }}>
+              Give this password to the person privately. It is shown only now. They are signed out everywhere and must choose their own password the next time they sign in.
+            </Text>
+          </View>
+          <ActionButton label="Done" kind="outline" accessibilityLabel="Hide the new password" onPress={() => setResult(null)} />
+        </View>
+      ) : null}
 
       {message ? <ErrorBanner text={message} /> : null}
       {error ? <ErrorBanner text={error} /> : null}
@@ -163,15 +229,46 @@ export default function Team() {
                   <ActionButton label="Keep as it is" kind="outline" accessibilityLabel="Cancel this change" onPress={() => setConfirm(null)} />
                 </View>
               </View>
+            ) : resetConfirm === m.id ? (
+              <View style={{ gap: spacing.sm }}>
+                <Text style={{ fontSize: fontSize.small, fontWeight: '600', color: colors.ink }}>
+                  {`Reset the password of ${name}? They will be signed out everywhere and must choose a new password the next time they sign in.`}
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  <ActionButton
+                    label="Yes, reset"
+                    kind="danger"
+                    accessibilityLabel={`Confirm: reset the password of ${name}`}
+                    onPress={() => resetPassword(m, name)}
+                    disabled={busy}
+                  />
+                  <ActionButton label="Keep as it is" kind="outline" accessibilityLabel="Cancel this change" onPress={() => setResetConfirm(null)} />
+                </View>
+              </View>
             ) : (
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                 <ActionButton
                   label={m.is_active ? 'Switch off' : 'Switch on'}
                   kind="outline"
                   accessibilityLabel={`${m.is_active ? 'Switch off' : 'Switch on'} ${name}`}
-                  onPress={() => setConfirm(m.id)}
+                  onPress={() => {
+                    setConfirm(m.id)
+                    setResetConfirm(null)
+                  }}
                   disabled={busy}
                 />
+                {m.is_active ? (
+                  <ActionButton
+                    label="Reset password"
+                    kind="outline"
+                    accessibilityLabel={`Reset the password of ${name}`}
+                    onPress={() => {
+                      setResetConfirm(m.id)
+                      setConfirm(null)
+                    }}
+                    disabled={busy}
+                  />
+                ) : null}
               </View>
             )}
           </View>

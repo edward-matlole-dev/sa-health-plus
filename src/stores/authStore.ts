@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { Session } from '@supabase/supabase-js'
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
@@ -99,17 +100,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     let mustChange = false
 
     if (data.session) {
-      const result = await loadRole(data.session.user.id)
-      if (result.status === 'ok') {
-        role = result.role
-        mustChange = result.mustChange
-        await AsyncStorage.setItem(ROLE_KEY, result.role)
-      } else if (result.status === 'error') {
-        // Offline: keep the user signed in using the role we remembered
-        role = (await AsyncStorage.getItem(ROLE_KEY)) as Role | null
-      } else {
-        await supabase.auth.signOut()
+      // Ask the server whether this session still exists. A password reset, or a sign-out
+      // on another device, ends it. A lost connection is not a reason to sign out.
+      const check = await supabase.auth.getUser()
+      // Any answer from the server that says the session is gone ends it. A lost connection
+      // or a server outage (status 500 or more) does not.
+      const ended =
+        !!check.error &&
+        !isAuthRetryableFetchError(check.error) &&
+        (check.error.status === undefined || check.error.status < 500)
+
+      if (ended) {
+        await supabase.auth.signOut({ scope: 'local' })
         await AsyncStorage.removeItem(ROLE_KEY)
+      } else {
+        const result = await loadRole(data.session.user.id)
+        if (result.status === 'ok') {
+          role = result.role
+          mustChange = result.mustChange
+          await AsyncStorage.setItem(ROLE_KEY, result.role)
+        } else if (result.status === 'error') {
+          // Offline: keep the user signed in using the role we remembered
+          role = (await AsyncStorage.getItem(ROLE_KEY)) as Role | null
+        } else {
+          await supabase.auth.signOut()
+          await AsyncStorage.removeItem(ROLE_KEY)
+        }
       }
     }
 

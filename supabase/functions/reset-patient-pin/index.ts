@@ -45,6 +45,10 @@ Deno.serve(async (req) => {
       .eq('id', patient.user_id)
     if (flagError) console.error('flag failed', flagError.code)
 
+    // End every session the patient had, so a lost phone cannot keep working after the reset.
+    const { error: sessionError } = await admin.rpc('revoke_user_sessions', { p_user: patient.user_id })
+    if (sessionError) console.error('session revoke failed', sessionError.code)
+
     const { error: auditError } = await admin.from('patient_security_events').insert({
       patient_id: patient.id,
       performed_by: caller.id,

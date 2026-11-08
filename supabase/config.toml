@@ -458,3 +458,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/reset-patient-pin/deno.json"
 entrypoint = "./functions/reset-patient-pin/index.ts"
+
+[functions.reset-staff-password]
+enabled = true
+verify_jwt = false
+import_map = "./functions/reset-staff-password/deno.json"
+entrypoint = "./functions/reset-staff-password/index.ts"
