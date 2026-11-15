@@ -8,8 +8,8 @@ import { FeatureHero } from '../../../components/FeatureHero'
 import { PatientScreen } from '../../../components/PatientScreen'
 import { Pill } from '../../../components/Pill'
 import { StatusBadge } from '../../../components/StatusBadge'
-import { collectionInfo } from '../../../components/record/MedicationsTab'
 import { pendingStatus } from '../../../components/record/BloodTestsTab'
+import { collectionInfo } from '../../../components/record/MedicationsTab'
 import { ErrorBanner } from '../../../components/visit/ui'
 import { categoryLabel } from '../../../constants/categories'
 import { colors, fontSize, radius, shadow, spacing } from '../../../constants/theme'
@@ -161,6 +161,29 @@ export default function Home() {
         icon="heart-pulse"
         footer={<View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: '#FFFFFF20' }}><MaterialCommunityIcons name={appt ? 'calendar-clock' : 'shield-check-outline'} size={16} color={colors.white} /><Text style={{ fontSize: fontSize.small - 1, fontWeight: '700', color: colors.white }}>{appt && apptDays !== null && apptDays >= 0 ? `Next appointment ${apptDays === 0 ? 'today' : `in ${apptDays} day${apptDays === 1 ? '' : 's'}`}` : 'Your health information is protected'}</Text></View>}
       />
+      <Pressable
+        onPress={() => router.push('/emergency')}
+        accessibilityRole="button"
+        accessibilityLabel="Emergency help. Open the emergency phone numbers."
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.lg,
+          borderWidth: 1.5,
+          borderColor: '#E5B4B0',
+          backgroundColor: '#FFF1F0',
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <MaterialCommunityIcons name="phone-alert" size={28} color="#A32D2D" />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: '#A32D2D' }}>Emergency help</Text>
+          <Text style={{ fontSize: fontSize.small, color: colors.ink }}>Ambulance and crisis numbers, one tap to call.</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#A32D2D" />
+      </Pressable>
       {error ? <ErrorBanner text={error} /> : null}
       {!dash && !error ? <Text style={{ fontSize: fontSize.body, color: colors.muted }}>Loading your care dashboard...</Text> : null}
 
