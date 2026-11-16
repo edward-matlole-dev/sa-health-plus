@@ -184,6 +184,29 @@ export default function Home() {
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#A32D2D" />
       </Pressable>
+      <Pressable
+        onPress={() => router.push('/health-tips')}
+        accessibilityRole="button"
+        accessibilityLabel="Health tips. Open simple advice for staying well."
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <MaterialCommunityIcons name="heart-pulse" size={28} color={colors.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: fontSize.body, fontWeight: '800', color: colors.heading }}>Health tips</Text>
+          <Text style={{ fontSize: fontSize.small, color: colors.muted }}>Simple ways to stay well.</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.muted} />
+      </Pressable>
       {error ? <ErrorBanner text={error} /> : null}
       {!dash && !error ? <Text style={{ fontSize: fontSize.body, color: colors.muted }}>Loading your care dashboard...</Text> : null}
 
