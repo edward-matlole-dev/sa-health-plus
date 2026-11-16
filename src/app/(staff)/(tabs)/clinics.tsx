@@ -13,12 +13,14 @@ import { PROVINCES } from '../../../constants/provinces'
 import { colors, fontSize, radius, shadow, spacing, staffColors } from '../../../constants/theme'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../stores/authStore'
+import { cleanPhone, phoneOk, showPhone } from '../../../utils/phone'
 
 type Clinic = {
   id: string
   name: string
   province: string
   address: string | null
+  phone: string | null
   is_active: boolean
   patients: number
   staff: number
@@ -38,6 +40,7 @@ function ClinicForm({
   const [name, setName] = useState(initial?.name ?? '')
   const [province, setProvince] = useState(initial?.province ?? '')
   const [address, setAddress] = useState(initial?.address ?? '')
+  const [phone, setPhone] = useState(initial?.phone ? showPhone(initial.phone) : '')
   const [submitted, setSubmitted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,13 +49,17 @@ function ClinicForm({
   const nameError =
     submitted && (trimmed.length < 2 || trimmed.length > 100) ? 'The name must be 2 to 100 characters' : null
   const provinceError = submitted && !province ? 'Choose the province' : null
+  const phoneBad = phone.trim() !== '' && !phoneOk(phone)
+  const phoneError = submitted && phoneBad ? 'Enter a South African number, for example 012 345 6789' : null
 
   const submit = async () => {
     setSubmitted(true)
     setError(null)
-    if (trimmed.length < 2 || trimmed.length > 100 || !province || busy) return
+    if (trimmed.length < 2 || trimmed.length > 100 || !province || phoneBad || busy) return
 
-    const payload = { name: trimmed, province, address: address.trim() || null }
+    const cleaned = cleanPhone(phone)
+    const stored = cleaned ? (cleaned.startsWith('0') ? `+27${cleaned.slice(1)}` : cleaned) : null
+    const payload = { name: trimmed, province, address: address.trim() || null, phone: stored }
     setBusy(true)
     const res = initial
       ? await supabase.from('clinics').update(payload).eq('id', initial.id).select('id')
@@ -120,6 +127,16 @@ function ClinicForm({
         style={{ minHeight: 70, textAlignVertical: 'top', paddingTop: spacing.md }}
       />
 
+      <Field
+        label="Clinic phone number (optional)"
+        icon="phone-outline"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        maxLength={20}
+        error={phoneError}
+      />
+
       {error ? <ErrorBanner text={error} /> : null}
       <PrimaryButton tone="staff" label={initial ? 'Save changes' : 'Add clinic'} icon="check" onPress={submit} loading={busy} />
       <Pressable onPress={onClose} accessibilityRole="button" style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
@@ -139,7 +156,7 @@ export default function Clinics() {
 
   const load = useCallback(async () => {
     const [c, o] = await Promise.all([
-      supabase.from('clinics').select('id, name, province, address, is_active').order('name'),
+      supabase.from('clinics').select('id, name, province, address, phone, is_active').order('name'),
       supabase.rpc('clinic_overview'),
     ])
     if (c.error || o.error) {
@@ -259,6 +276,7 @@ export default function Clinics() {
             </View>
           </View>
           {c.address ? <Text style={{ fontSize: fontSize.small, color: colors.ink }}>{c.address}</Text> : null}
+          {c.phone ? <Text style={{ fontSize: fontSize.small, color: colors.ink }}>{showPhone(c.phone)}</Text> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.accentTint }}>
               <MaterialCommunityIcons name="account-group-outline" size={16} color={colors.accent} />
